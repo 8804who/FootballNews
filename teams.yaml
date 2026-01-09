@@ -1,0 +1,44 @@
+api_football:
+  teams:
+    - name: Manchester United
+      id: 33
+    - name: Liverpool
+      id: 34
+    - name: Chelsea
+      id: 35
+    - name: Arsenal
+      id: 36
+    - name: Manchester City
+      id: 37
+    - name: Tottenham Hotspur
+      id: 38
+
+fbref:
+  teams:
+    - name: Manchester United
+      id: 18bb7c10
+    - name: Liverpool
+      id: 18bb7c11
+    - name: Chelsea
+      id: 18bb7c12
+    - name: Arsenal
+      id: 18bb7c13
+    - name: Manchester City
+      id: 18bb7c14
+    - name: Tottenham Hotspur
+      id: 18bb7c15
+
+FPL:
+  teams:
+    - name: Manchester United
+      short_name: Man Utd
+    - name: Liverpool
+      short_name: Liverpool
+    - name: Chelsea
+      short_name: Chelsea
+    - name: Arsenal
+      short_name: Arsenal
+    - name: Manchester City
+      short_name: Man City
+    - name: Tottenham Hotspur
+      short_name: Spurs
