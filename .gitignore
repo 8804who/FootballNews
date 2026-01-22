@@ -9,4 +9,6 @@ __pycache__/
 *.pyzw
 *.pyzwz
 
-api.yaml
+datas/
+
+api.yml

@@ -42,3 +42,18 @@ FPL:
       short_name: Man City
     - name: Tottenham Hotspur
       short_name: Spurs
+
+fotmob:
+  teams:
+    - name: Manchester United
+      id: 10260
+    - name: Liverpool
+      id: 8650
+    - name: Chelsea
+      id: 8455
+    - name: Arsenal
+      id: 9825
+    - name: Manchester City
+      id: 8456
+    - name: Tottenham Hotspur
+      id: 8586

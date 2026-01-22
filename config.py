@@ -1,14 +1,19 @@
 from yaml import load, Loader
 
 ### API KEYS, URLS ###
-with open("api.yaml", "r") as f:
+with open("api.yml", "r") as f:
     data = load(f, Loader=Loader)
     API_KEY = data["API_KEY"]
     URL = data["URL"]
 
-### TEAMS ###
-with open("teams.yaml", "r") as f:
+### PROMPT ###
+with open("prompt.yml", "r") as f:
     data = load(f, Loader=Loader)
-    API_FOOTBALL_TEAMS = data["api_football"]["teams"]
+    PROMPT = data["prompt"]
+
+### TEAMS ###
+with open("teams.yml", "r") as f:
+    data = load(f, Loader=Loader)
     FBREF_TEAMS = data["fbref"]["teams"]
     FPL_TEAMS = data["FPL"]["teams"]
+    FOTMOB_TEAMS = data["fotmob"]["teams"]

@@ -1,5 +1,7 @@
 from datetime import datetime, timedelta
 import requests
+import json
+import os
 
 from config import FPL_TEAMS, URL
 
@@ -15,7 +17,14 @@ class FPLScraper:
         '''
         전체 데이터 조회
         '''
-        bootstrap = requests.get(self.base_url + "bootstrap-static/").json()
+        os.makedirs(f"datas/fpl/{datetime.now().strftime('%Y%m%d')}", exist_ok=True)
+        if os.path.exists(f"datas/fpl/{datetime.now().strftime('%Y%m%d')}/bootstrap.json"):
+            with open(f"datas/fpl/{datetime.now().strftime('%Y%m%d')}/bootstrap.json", "r") as f:
+                bootstrap = json.load(f)
+        else:
+            bootstrap = requests.get(self.base_url + "bootstrap-static/").json()
+            with open(f"datas/fpl/{datetime.now().strftime('%Y%m%d')}/bootstrap.json", "w") as f:
+                json.dump(bootstrap, f)
 
         teams = bootstrap["teams"]
         events = bootstrap["events"]
@@ -74,7 +83,13 @@ class FPLScraper:
         '''
         all_fixtures = []
         for gw_id in gameweek_ids:
-            fixtures = requests.get(self.base_url + f"fixtures/?event={gw_id}").json()
+            if os.path.exists(f"datas/fpl/{datetime.now().strftime('%Y%m%d')}/fixtures_{gw_id}.json"):
+                with open(f"datas/fpl/{datetime.now().strftime('%Y%m%d')}/fixtures_{gw_id}.json", "r") as f:
+                    fixtures = json.load(f)
+            else:
+                fixtures = requests.get(self.base_url + f"fixtures/?event={gw_id}").json()
+                with open(f"datas/fpl/{datetime.now().strftime('%Y%m%d')}/fixtures_{gw_id}.json", "w") as f:
+                    json.dump(fixtures, f)
             all_fixtures.extend(fixtures)
         return all_fixtures
 
