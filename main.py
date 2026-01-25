@@ -1,0 +1,59 @@
+import os
+from datetime import datetime
+
+from config import FOTMOB_TEAMS, TEAMS
+from scrappers.fotmob import fot_mob_crawler
+from scrappers.news_rss import news_rss
+from summarizers.llm import llmSummarizer
+
+
+def get_fotmob_data(team):
+        fotmob_team = next((t for t in FOTMOB_TEAMS if t['name'] == team['name']), None)
+        if not fotmob_team:
+            print(f"Warning: Team '{team['name']}' not found in FOTMOB_TEAMS")
+            return None
+        
+        target_team_id = fotmob_team['id']
+        team_name = fotmob_team['name'].replace(" ", "_")
+    
+        raw_data = fot_mob_crawler.get_team_weekly_data(target_team_id)
+        matches_output = fot_mob_crawler.generate_markdown_report(raw_data, 'matches')
+        transfers_output = fot_mob_crawler.generate_markdown_report(raw_data, 'transfers')
+        
+        os.makedirs(f"datas/fotmob/{datetime.now().strftime('%Y%m%d')}", exist_ok=True)
+        with open(f"datas/fotmob/{datetime.now().strftime('%Y%m%d')}/team_weekly_report_{team_name}_matches.md", "w") as f:
+            f.write(matches_output)
+        with open(f"datas/fotmob/{datetime.now().strftime('%Y%m%d')}/team_weekly_report_{team_name}_transfers.md", "w") as f:
+            f.write(transfers_output)
+
+def get_news_rss_data(team):
+    news_items = news_rss.get_transfer_news_rss(team['name'])
+    markdown_output = news_rss.get_transfer_news_rss_markdown(news_items)
+    os.makedirs(f"datas/news_rss/{datetime.now().strftime('%Y%m%d')}", exist_ok=True)
+    with open(f"datas/news_rss/{datetime.now().strftime('%Y%m%d')}/team_weekly_report_{team['name'].replace(" ", "_")}.md", "w") as f:
+        f.write(markdown_output)
+
+
+def generate_newsletter(matches_data, transfers_data):
+    newsletter = llmSummarizer.generate_newsletter(matches_data, transfers_data)
+    return newsletter
+
+if __name__ == "__main__":
+    for team in TEAMS:
+        get_fotmob_data(team)
+        get_news_rss_data(team)
+
+        matches_data = ""
+        transfers_data = ""
+
+        with open(f"datas/fotmob/{datetime.now().strftime('%Y%m%d')}/team_weekly_report_{team['name'].replace(" ", "_")}_matches.md", "r") as f:
+            matches_data = f.read()
+        with open(f"datas/fotmob/{datetime.now().strftime('%Y%m%d')}/team_weekly_report_{team['name'].replace(" ", "_")}_transfers.md", "r") as f:
+            transfers_data = f.read()
+        with open(f"datas/news_rss/{datetime.now().strftime('%Y%m%d')}/team_weekly_report_{team['name'].replace(" ", "_")}.md", "r") as f:
+            transfers_data += f.read()
+
+        newsletter = generate_newsletter(matches_data, transfers_data)
+        os.makedirs(f"datas/newsletter/{datetime.now().strftime('%Y%m%d')}", exist_ok=True)
+        with open(f"datas/newsletter/{datetime.now().strftime('%Y%m%d')}/team_weekly_report_{team['name'].replace(" ", "_")}.md", "w") as f:
+            f.write(newsletter)

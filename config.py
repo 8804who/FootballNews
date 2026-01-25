@@ -9,7 +9,7 @@ with open("api.yml", "r") as f:
 ### PROMPT ###
 with open("prompt.yml", "r") as f:
     data = load(f, Loader=Loader)
-    PROMPT = data["prompt"]
+    PROMPT = data
 
 ### TEAMS ###
 with open("teams.yml", "r") as f:
@@ -17,3 +17,8 @@ with open("teams.yml", "r") as f:
     FBREF_TEAMS = data["fbref"]["teams"]
     FPL_TEAMS = data["FPL"]["teams"]
     FOTMOB_TEAMS = data["fotmob"]["teams"]
+
+### SETTING ###
+with open("setting.yml", "r") as f:
+    data = load(f, Loader=Loader)
+    TEAMS = data["teams"]
