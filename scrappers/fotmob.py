@@ -87,13 +87,12 @@ class FotMobCrawler:
         return team_data
 
 
-    def get_team_weekly_matches(self, team_data):
+    def get_team_weekly_matches(self, team_data, team_id):
         """Collect raw data for the team's recent matches"""
         today = datetime.now()
         start_date = today - timedelta(days=7)
         
         team_name = team_data.get('details', {}).get('name', 'Unknown')
-        team_id = team_data.get('id')
 
         matches = []
 
@@ -121,8 +120,8 @@ class FotMobCrawler:
                     "local_date_str": match_date.strftime("%Y-%m-%d %H:%M"),
                     "opponent": opponent,
                     "score": score,
-                    "home_team": team_name,
-                    "away_team": opponent,
+                    "home_team": team_name if details['venue'] == "Home" else opponent, 
+                    "away_team": opponent if details['venue'] == "Home" else team_name,
                     "competition": details['competition'],
                     "venue": details['venue'],
                     "mom": details['mom'],
@@ -174,7 +173,7 @@ class FotMobCrawler:
         today = datetime.now()
         start_date = today - timedelta(days=7)
 
-        matches_data = self.get_team_weekly_matches(team_data)
+        matches_data = self.get_team_weekly_matches(team_data, team_id)
         transfers_data = self.get_team_weekly_transfers(team_data, team_id)
 
         report_data = {
