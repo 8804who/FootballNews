@@ -3,7 +3,7 @@ from config import API_KEY, PROMPT
 
 class LLMSummarizer:
     def __init__(self):
-        self.llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3, api_key=API_KEY["OPENAI"])
+        self.llm = ChatOpenAI(model="gpt-5-mini", temperature=0, api_key=API_KEY["OPENAI"])
 
 
     def generate_prompt(self, prompt_name: dict, data: str = None) -> str:
