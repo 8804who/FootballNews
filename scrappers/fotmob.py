@@ -1,6 +1,6 @@
+from datetime import datetime, timedelta, timezone
 import requests
 import json
-from datetime import datetime, timedelta
 import time
 import os
 
@@ -89,7 +89,7 @@ class FotMobCrawler:
 
     def get_team_weekly_matches(self, team_data, team_id):
         """Collect raw data for the team's recent matches"""
-        today = datetime.now()
+        today = datetime.now(timezone.utc)
         start_date = today - timedelta(days=7)
         
         team_name = team_data.get('details', {}).get('name', 'Unknown')
@@ -136,7 +136,7 @@ class FotMobCrawler:
 
     def get_team_weekly_transfers(self, team_data, team_id):
         """Collect raw data for the team's recent transfers"""
-        today = datetime.now()
+        today = datetime.now(timezone.utc)
         start_date = today - timedelta(days=7)
         
         print(f"🔄 Collecting data for Team {team_data['details']['name']}... ({start_date.date()} ~ {today.date()})")
