@@ -104,7 +104,7 @@ class FotMobCrawler:
                 continue
             
             try:
-                match_date = datetime.strptime(match_time_str, "%Y-%m-%dT%H:%M:%S.%fZ")
+                match_date = datetime.strptime(match_time_str, "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc)
             except ValueError:
                 continue 
             
@@ -152,7 +152,7 @@ class FotMobCrawler:
                 t_date_str = t.get('transferDate')
                 if t_date_str:
                     try:
-                        t_date = datetime.strptime(t_date_str, "%Y-%m-%dT%H:%M:%S.%fZ")
+                        t_date = datetime.strptime(t_date_str, "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc)
                         if start_date <= t_date <= today:
                             transfers.append({
                                 "player": t.get('name'),
