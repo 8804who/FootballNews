@@ -12,3 +12,4 @@ __pycache__/
 datas/
 
 api.yml
+gen-lang-client.json
