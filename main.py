@@ -2,6 +2,7 @@ import os
 from datetime import datetime
 
 from config import FOTMOB_TEAMS, TEAMS
+from google_sheet_parser import google_sheet_parser
 from scrappers.fotmob import fot_mob_crawler
 from scrappers.news_rss import news_rss
 from summarizers.llm import llmSummarizer
@@ -38,6 +39,12 @@ def generate_newsletter(matches_data, transfers_data):
     newsletter = llmSummarizer.generate_newsletter(matches_data, transfers_data)
     return newsletter
 
+
+def get_newsletter_subscribers(team):
+    subscribers = google_sheet_parser.get_team_subscribers(team['name'])
+    return subscribers
+
+
 if __name__ == "__main__":
     for team in TEAMS:
         get_fotmob_data(team)
@@ -57,3 +64,7 @@ if __name__ == "__main__":
         os.makedirs(f"datas/newsletter/{datetime.now().strftime('%Y%m%d')}", exist_ok=True)
         with open(f"datas/newsletter/{datetime.now().strftime('%Y%m%d')}/team_weekly_report_{team['name'].replace(" ", "_")}.md", "w") as f:
             f.write(newsletter)
+
+        subscribers = get_newsletter_subscribers(team)
+        for subscriber in subscribers:
+            print(f"Sending newsletter to {subscriber}")
