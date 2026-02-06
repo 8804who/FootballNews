@@ -2,6 +2,7 @@ import os
 from datetime import datetime
 
 from config import FOTMOB_TEAMS, TEAMS
+from email_sender.smtp_sender import smtp_sender
 from google_sheet_parser import google_sheet_parser
 from scrappers.fotmob import fot_mob_crawler
 from scrappers.news_rss import news_rss
@@ -68,3 +69,4 @@ if __name__ == "__main__":
         subscribers = get_newsletter_subscribers(team)
         for subscriber in subscribers:
             print(f"Sending newsletter to {subscriber}")
+            smtp_sender.send_email(subscriber, "Weekly Football Newsletter", newsletter)

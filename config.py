@@ -6,6 +6,7 @@ with open("api.yml", "r") as f:
     API_KEY = data["API_KEY"]
     URL = data["URL"]
     GOOGLE_CLOUD = data["GOOGLE_CLOUD"]
+    SMTP = data["SMTP"]
 
 ### PROMPT ###
 with open("prompt.yml", "r") as f:
