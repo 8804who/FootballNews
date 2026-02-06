@@ -24,8 +24,8 @@ class GoogleSheetParser:
         subscribers = []
         records = self.get_all_records()
         for record in records:
-            if record["Team"] == team_name:
-                subscribers.append(record["email"])
+            if record["어떤 팀의 소식을 받아보고 싶나요?"] == team_name:
+                subscribers.append(record["뉴스 레터를 수신할 이메일을 입력해주세요."])
         return subscribers
 
 google_sheet_parser = GoogleSheetParser(GOOGLE_CLOUD["SPREADSHEET_URL"], "신청자 목록")
