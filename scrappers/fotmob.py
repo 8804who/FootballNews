@@ -339,6 +339,8 @@ class FotMobCrawler:
 
 
     def generate_matches_markdown_report(self, matches):
+        if not matches:
+            return None
         md = ""
         for match in matches:
                 md += f"## 🏟️ Match: vs {match['opponent']}\n"
@@ -369,6 +371,8 @@ class FotMobCrawler:
 
     
     def generate_transfers_markdown_report(self, transfers):
+        if not transfers:
+            return None
         md = "## 🔁 Transfer Updates\n"
         for t in transfers:
             md += f"- **{t['player']}**: {t['type']} ({t['date'].split('T')[0]})\n"
@@ -378,7 +382,7 @@ class FotMobCrawler:
     def generate_markdown_report(self, data, report_type: str):
         """Convert collected data into a clean Markdown format for LLM input"""
         if not data:
-            return "No data available."
+            return None
 
         md = f"# 📅 Weekly Report: {data['team_name']}\n"
         md += f"**Period:** {data['period']}\n\n"

@@ -31,6 +31,8 @@ class NewsRSS:
             return news_items
 
     def get_transfer_news_rss_markdown(self, news_items):
+        if not news_items:
+            return None
         markdown = "# Transfer Rumors\n"
         for item in news_items:
             markdown += f"- {item['title']} ({item['link']})\n"

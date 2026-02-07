@@ -53,17 +53,18 @@ if __name__ == "__main__":
 
         matches_data = ""
         transfers_data = ""
-
-        with open(f"datas/fotmob/{datetime.now().strftime('%Y%m%d')}/team_weekly_report_{team['name'].replace(" ", "_")}_matches.md", "r") as f:
+        today = datetime.now().strftime('%Y%m%d')
+        
+        with open(f"datas/fotmob/{today}/team_weekly_report_{team['name'].replace(" ", "_")}_matches.md", "r") as f:
             matches_data = f.read()
-        with open(f"datas/fotmob/{datetime.now().strftime('%Y%m%d')}/team_weekly_report_{team['name'].replace(" ", "_")}_transfers.md", "r") as f:
+        with open(f"datas/fotmob/{today}/team_weekly_report_{team['name'].replace(" ", "_")}_transfers.md", "r") as f:
             transfers_data = f.read()
-        with open(f"datas/news_rss/{datetime.now().strftime('%Y%m%d')}/team_weekly_report_{team['name'].replace(" ", "_")}.md", "r") as f:
+        with open(f"datas/news_rss/{today}/team_weekly_report_{team['name'].replace(" ", "_")}.md", "r") as f:
             transfers_data += f.read()
 
         newsletter = generate_newsletter(matches_data, transfers_data)
-        os.makedirs(f"datas/newsletter/{datetime.now().strftime('%Y%m%d')}", exist_ok=True)
-        with open(f"datas/newsletter/{datetime.now().strftime('%Y%m%d')}/team_weekly_report_{team['name'].replace(" ", "_")}.md", "w") as f:
+        os.makedirs(f"datas/newsletter/{today}", exist_ok=True)
+        with open(f"datas/newsletter/{today}/team_weekly_report_{team['name'].replace(" ", "_")}.md", "w") as f:
             f.write(newsletter)
 
         subscribers = get_newsletter_subscribers(team)
