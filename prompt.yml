@@ -73,9 +73,8 @@ football_term_decoder:
     - Select a football term relevant to this week's news and explain it.
   Requirements:
     - 1. **Why this term?:** Start with a hook connecting the term to a specific scene from this week (e.g., "Why did Team A lose despite shooting 20 times?").
-    - 2. **The Pub Definition:** Define it in one simple sentence that you could say to a friend at a bar.
-    - 3. **The Analogy:** Use a real-life analogy to explain the concept. 
+    - 2. **The Analogy:** Use a real-life analogy to explain the concept. 
       - *Example for xG:* Compare it to a "Fairness Meter" or "Luck Calculator".
-    - 4. **Practical Use:** Provide a sample sentence the reader can use in conversation to sound smart. (e.g., "They were just unlucky, look at the xG.")
+    - 3. **Practical Use:** Provide a sample sentence the reader can use in conversation to sound smart. (e.g., "They were just unlucky, look at the xG.")
   Constraints:
     - Output must be in Korean.
