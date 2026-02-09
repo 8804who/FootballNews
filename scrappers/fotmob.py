@@ -381,17 +381,18 @@ class FotMobCrawler:
 
     def generate_markdown_report(self, data, report_type: str):
         """Convert collected data into a clean Markdown format for LLM input"""
-        if not data:
-            return None
-
         md = f"# 📅 Weekly Report: {data['team_name']}\n"
         md += f"**Period:** {data['period']}\n\n"
         
         md += "---\n\n"
 
         if report_type == 'matches':
+            if not data['matches']:
+                return None
             md += self.generate_matches_markdown_report(data['matches'])
         elif report_type == 'transfers':
+            if not data['transfers']:
+                return None
             md += self.generate_transfers_markdown_report(data['transfers'])
         else:
             return "Invalid report type."
