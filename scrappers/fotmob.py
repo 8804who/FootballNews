@@ -87,11 +87,8 @@ class FotMobCrawler:
         return team_data
 
 
-    def get_team_weekly_matches(self, team_data, team_id):
+    def get_team_weekly_matches(self, start_date, end_date, team_data, team_id):
         """Collect raw data for the team's recent matches"""
-        today = datetime.now(timezone.utc)
-        start_date = today - timedelta(days=7)
-        
         team_name = team_data.get('details', {}).get('name', 'Unknown')
 
         matches = []
@@ -108,7 +105,7 @@ class FotMobCrawler:
             except ValueError:
                 continue 
             
-            if start_date <= match_date <= today:
+            if start_date <= match_date <= end_date:
                 match_id = match.get('id')
                 opponent = match.get('opponent', {}).get('name')
                 score = match.get('status', {}).get('scoreStr')
@@ -134,12 +131,9 @@ class FotMobCrawler:
         return matches
 
 
-    def get_team_weekly_transfers(self, team_data, team_id):
+    def get_team_weekly_transfers(self, start_date, end_date, team_data, team_id):
         """Collect raw data for the team's recent transfers"""
-        today = datetime.now(timezone.utc)
-        start_date = today - timedelta(days=7)
-        
-        print(f"🔄 Collecting data for Team {team_data['details']['name']}... ({start_date.date()} ~ {today.date()})")
+        print(f"🔄 Collecting data for Team {team_data['details']['name']}... ({start_date.date()} ~ {end_date.date()})")
 
         team_name = team_data.get('details', {}).get('name', 'Unknown')
         
@@ -153,7 +147,7 @@ class FotMobCrawler:
                 if t_date_str:
                     try:
                         t_date = datetime.strptime(t_date_str, "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc)
-                        if start_date <= t_date <= today:
+                        if start_date <= t_date <= end_date:
                             transfers.append({
                                 "player": t.get('name'),
                                 "type": f"{t.get('fromClub')} -> {t.get('toClub')}",
@@ -164,21 +158,18 @@ class FotMobCrawler:
         return transfers
 
 
-    def get_team_weekly_data(self, team_id):
+    def get_team_weekly_data(self, start_date, end_date, team_id):
         """Collect raw data for the team's recent matches"""
         team_data = self.get_team_data(team_id)
         if not team_data:
             return None
 
-        today = datetime.now()
-        start_date = today - timedelta(days=7)
-
-        matches_data = self.get_team_weekly_matches(team_data, team_id)
-        transfers_data = self.get_team_weekly_transfers(team_data, team_id)
+        matches_data = self.get_team_weekly_matches(start_date, end_date, team_data, team_id)
+        transfers_data = self.get_team_weekly_transfers(start_date, end_date, team_data, team_id)
 
         report_data = {
             "team_name": team_data['details']['name'],
-            "period": f"{start_date.date()} ~ {today.date()}",
+            "period": f"{start_date.date()} ~ {end_date.date()}",
             "matches": matches_data,
             "transfers": transfers_data
         }
