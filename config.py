@@ -24,3 +24,4 @@ with open("teams.yml", "r") as f:
 with open("setting.yml", "r") as f:
     data = load(f, Loader=Loader)
     TEAMS = data["teams"]
+    MODEL = data["model"]

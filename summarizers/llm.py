@@ -1,9 +1,9 @@
 from langchain_openai import ChatOpenAI
-from config import API_KEY, PROMPT
+from config import API_KEY, PROMPT, MODEL
 
 class LLMSummarizer:
     def __init__(self):
-        self.llm = ChatOpenAI(model="gpt-5-mini", temperature=0, api_key=API_KEY["OPENAI"])
+        self.llm = ChatOpenAI(model=MODEL, temperature=0, api_key=API_KEY["OPENAI"])
 
 
     def generate_prompt(self, prompt_name: dict, data: str = None) -> str:
@@ -34,18 +34,18 @@ class LLMSummarizer:
         return self.llm.invoke(system_prompt + prompt)
 
 
-    def generate_football_term_decoder(self, term: str) -> str:
-        if not term:
+    def generate_football_term_decoder(self, news_data: str) -> str:
+        if not news_data or news_data == "":
             return None
         system_prompt = self.generate_prompt("system_prompt")
-        prompt = self.generate_prompt("football_term_decoder", term)
+        prompt = self.generate_prompt("football_term_decoder", news_data)
         return self.llm.invoke(system_prompt + prompt)
 
 
     def generate_newsletter(self, matches_data: str, transfers_data: str) -> str:
         matches_report = self.generate_matches_report(matches_data)
         transfers_report = self.generate_transfers_report(transfers_data)
-        football_term_decoder = self.generate_football_term_decoder(matches_data + transfers_data)
+        football_term_decoder = self.generate_football_term_decoder(matches_data if matches_data else "" + transfers_data if transfers_data else "")
 
         matches_report_content = matches_report.content if matches_report else "한 주간 진행된 경기가 없었네요."
         transfers_report_content = transfers_report.content if transfers_report else "한 주간 아무런 이적 소식이 없었네요."

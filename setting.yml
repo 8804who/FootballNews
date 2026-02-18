@@ -5,3 +5,5 @@ teams:
   - name: Arsenal
   - name: Manchester City
   - name: Tottenham Hotspur
+
+model: gpt-5-mini
