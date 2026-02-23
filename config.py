@@ -8,6 +8,11 @@ with open("api.yml", "r") as f:
     GOOGLE_CLOUD = data["GOOGLE_CLOUD"]
     SMTP = data["SMTP"]
 
+### EXAMPLE ###
+with open("example.yml", "r") as f:
+    data = load(f, Loader=Loader)
+    EXAMPLE = data
+
 ### PROMPT ###
 with open("prompt.yml", "r") as f:
     data = load(f, Loader=Loader)
