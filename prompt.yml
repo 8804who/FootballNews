@@ -52,7 +52,8 @@ matches_report:
     - 3. **Output Generation:**
       - Output the final result in **Markdown**, written in Korean.
   Constraints:
-    - The output must be written entirely in Korean.
+    - Write team names and player names same as the input data.
+    - The output must be written entirely in Korean(except for team names and player names).
 
 
 transfers_report:

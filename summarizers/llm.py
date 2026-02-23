@@ -1,4 +1,6 @@
 from langchain_openai import ChatOpenAI
+from langchain_core.prompts import FewShotPromptTemplate, PromptTemplate
+
 from config import API_KEY, PROMPT, MODEL
 
 class LLMSummarizer:
@@ -6,23 +8,52 @@ class LLMSummarizer:
         self.llm = ChatOpenAI(model=MODEL, temperature=0, api_key=API_KEY["OPENAI"])
 
 
-    def generate_prompt(self, prompt_name: dict, data: str = None) -> str:
+    def generate_prompt(self, prompt_name: str, data: str = None) -> str:
         prompt = ''
         for key, value in PROMPT[prompt_name].items():
             prompt += f"### {key}\n"
             for item in value:
                 prompt += item + "\n"
-            if key == "Input Data":
-                prompt += data + "\n"
             prompt += "\n"
         return prompt
+
+    def generate_example(self, example_name: str) -> dict:
+        example = PROMPT[example_name]
+        return example
 
 
     def generate_matches_report(self, matches_data: str) -> str:
         if not matches_data:
             return None
         system_prompt = self.generate_prompt("system_prompt")
-        prompt = self.generate_prompt("matches_report", matches_data)
+        
+        # Few-shot 예제 정의
+        examples = [
+            self.generate_example("matches_report_example1"),
+            self.generate_example("matches_report_example2"),
+        ]
+        
+        # 예제 포맷터 생성
+        example_prompt = PromptTemplate(
+            input_variables=["input", "output"],
+            template="Input:\n{input}\n\nOutput:\n{output}\n"
+        )
+        
+        # matches_report 프롬프트에서 Input Data 부분 제외하고 prefix 생성
+        matches_prompt_template = self.generate_prompt("matches_report")
+        
+        # FewShotPromptTemplate 생성
+        few_shot_prompt = FewShotPromptTemplate(
+            examples=examples,
+            example_prompt=example_prompt,
+            prefix=matches_prompt_template,
+            suffix="Input:\n{input}\n\nOutput:\n",
+            input_variables=["input"]
+        )
+        
+        # 최종 프롬프트 생성
+        prompt = few_shot_prompt.format(input=matches_data)
+
         return self.llm.invoke(system_prompt + prompt)
 
 
