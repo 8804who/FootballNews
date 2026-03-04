@@ -1,48 +1,43 @@
 matches_report:
-  - example1:
-    - input: |
-        Team: Arsenal
-        Venue: Home
-        Match: Arsenal vs Liverpool
-        Score: 3-1
-        Key Events:
-        - 15' Arsenal: Goal by Bukayo Saka
-        - 32' Liverpool: Goal by Mohamed Salah
-        - 45' Arsenal: Goal by Gabriel Jesus
-        - 78' Arsenal: Goal by Martin Odegaard
-    - output: |
-        ## 🏆 메인 헤드라인
-        **Arsenal, Liverpool을 3-1로 격파하며 홈에서 강력한 메시지 전달**
+  - input: |
+      Team: Arsenal
+      Venue: Home
+      Match: Arsenal vs Liverpool
+      Score: 3-1
+      Key Events:
+      - 15' Arsenal: Goal by Bukayo Saka
+      - 32' Liverpool: Goal by Mohamed Salah
+      - 45' Arsenal: Goal by Gabriel Jesus
+      - 78' Arsenal: Goal by Martin Odegaard
+    output: |
+      ## 🏆 메인 헤드라인
+      **Arsenal, Liverpool을 3-1로 격파하며 홈에서 강력한 메시지 전달**
 
-        ## ⭐ 이번 주 최고의 경기
-        Arsenal이 Liverpool을 상대로 홈에서 3-1 승리를 거두며 강력한 메시지를 전달했다. 사카의 선제골로 시작된 경기에서 살라의 동점골로 긴장감이 고조됐지만, 제주스와 외데고르의 연속골로 승리를 확정지었다.
+      ## ⭐ 이번 주 최고의 경기
+      Arsenal이 Liverpool을 상대로 홈에서 3-1 승리를 거두며 강력한 메시지를 전달했다. 사카의 선제골로 시작된 경기에서 살라의 동점골로 긴장감이 고조됐지만, 제주스와 외데고르의 연속골로 승리를 확정지었다.
 
-        ## 📊 한눈에 보는 스코어보드
-        | 경기 | 스코어 | 한줄 요약 |
-        |------|--------|----------|
-        | Arsenal vs Liverpool | 3-1 | 홈에서 리버풀을 완파한 Arsenal의 강력한 무대 |
-        
-        ---
-  
-  - example2: 
-    - input: |
-        Team: Manchester City
-        Venue: Away
-        Match: Chelsea vs Manchester City
-        Score: 0-2
-        Key Events:
-        - 23' Manchester City: Goal by Erling Haaland
-        - 67' Manchester City: Goal by Kevin De Bruyne
-    - output: |
-        ## 🏆 메인 헤드라인
-        **Manchester City, Chelsea를 2-0으로 격파하며 원정에서 강력한 메시지 전달**
+      ## 📊 한눈에 보는 스코어보드
+      | 경기 | 스코어 | 한줄 요약 |
+      |------|--------|----------|
+      | Arsenal vs Liverpool | 3-1 | 홈에서 리버풀을 완파한 Arsenal의 강력한 무대 |
+      ---
+  - input: |
+      Team: Manchester City
+      Venue: Away
+      Match: Chelsea vs Manchester City
+      Score: 0-2
+      Key Events:
+      - 23' Manchester City: Goal by Erling Haaland
+      - 67' Manchester City: Goal by Kevin De Bruyne
+    output: |
+      ## 🏆 메인 헤드라인
+      **Manchester City, Chelsea를 2-0으로 격파하며 원정에서 강력한 메시지 전달**
 
-        ## ⭐ 이번 주 최고의 경기
-        Manchester City가 Chelsea를 상대로 원정에서 2-0 완승을 거두며 리그 우승 의지를 과시했다. 홀란드의 선제골과 드 브라위너의 추가골로 무난하게 승리를 거두었으며, 수비진의 철벽 수비로 무실점 승리를 기록했다.
+      ## ⭐ 이번 주 최고의 경기
+      Manchester City가 Chelsea를 상대로 원정에서 2-0 완승을 거두며 리그 우승 의지를 과시했다. 홀란드의 선제골과 드 브라위너의 추가골로 무난하게 승리를 거두었으며, 수비진의 철벽 수비로 무실점 승리를 기록했다.
 
-        ## 📊 한눈에 보는 스코어보드
-        | 경기 | 스코어 | 한줄 요약 |
-        |------|--------|----------|
-        | Chelsea vs Manchester City | 0-2 | 원정에서도 막힘 없는 Manchester City의 위력 |
-
-        ---
+      ## 📊 한눈에 보는 스코어보드
+      | 경기 | 스코어 | 한줄 요약 |
+      |------|--------|----------|
+      | Chelsea vs Manchester City | 0-2 | 원정에서도 막힘 없는 Manchester City의 위력 |
+      ---

@@ -1,7 +1,7 @@
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import FewShotPromptTemplate, PromptTemplate
 
-from config import API_KEY, PROMPT, MODEL
+from config import API_KEY, PROMPT, MODEL, EXAMPLE
 
 class LLMSummarizer:
     def __init__(self):
@@ -17,8 +17,9 @@ class LLMSummarizer:
             prompt += "\n"
         return prompt
 
+
     def generate_example(self, example_name: str) -> dict:
-        example = PROMPT[example_name]
+        example = EXAMPLE[example_name]
         return example
 
 
@@ -28,10 +29,7 @@ class LLMSummarizer:
         system_prompt = self.generate_prompt("system_prompt")
         
         # Few-shot 예제 정의
-        examples = [
-            self.generate_example("matches_report_example1"),
-            self.generate_example("matches_report_example2"),
-        ]
+        examples = self.generate_example("matches_report")
         
         # 예제 포맷터 생성
         example_prompt = PromptTemplate(
