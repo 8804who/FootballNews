@@ -1,10 +1,10 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 import requests
-import json
+import re
 import time
-import os
 
-from config import FOTMOB_TEAMS, TEAMS
+from playwright.sync_api import sync_playwright
+
 
 class FotMobCrawler:
     def __init__(self):
@@ -14,20 +14,6 @@ class FotMobCrawler:
             "Referer": "https://www.fotmob.com/"
         }
         
-        self.round_map = {
-            "final": "Final",
-            "semi-finals": "Semi-Finals",
-            "semi-final": "Semi-Finals",
-            "quarter-finals": "Quarter-Finals",
-            "quarter-final": "Quarter-Finals",
-            "round of 16": "Round of 16",
-            "round of 32": "Round of 32",
-            "knockout round play-offs": "Round of 16 Play-offs",
-            "play-offs": "Play-offs",
-            "third place play-off": "Third Place Play-off",
-            "community shield": "Community Shield"
-        }
-
 
     def _get_json(self, endpoint, params=None):
         try:
@@ -37,46 +23,6 @@ class FotMobCrawler:
         except requests.exceptions.RequestException as e:
             print(f"Error fetching {endpoint}: {e}")
             return None
-
-
-    def _get_safe_name(self, player_obj):
-        """Extract player name safely from inconsistent API responses"""
-        if not player_obj:
-            return "Unknown"
-        
-        raw_name = player_obj.get('name')
-        if isinstance(raw_name, str):
-            return raw_name
-            
-        if isinstance(raw_name, dict):
-            first = raw_name.get('firstName', '')
-            last = raw_name.get('lastName', '')
-            full_name = f"{first} {last}".strip()
-            return full_name if full_name else "Unknown"
-
-        if 'firstName' in player_obj or 'lastName' in player_obj:
-            first = player_obj.get('firstName', '')
-            last = player_obj.get('lastName', '')
-            return f"{first} {last}".strip()
-
-        return "Unknown"
-
-
-    def _format_round_info(self, round_info):
-        """Format round names into proper English"""
-        if not round_info:
-            return ""
-            
-        raw = str(round_info).lower().strip()
-        
-        for key, val in self.round_map.items():
-            if key in raw:
-                return val
-        
-        if raw.isdigit():
-            return f"Matchweek {raw}"
-            
-        return str(round_info).capitalize()
 
 
     def get_team_data(self, team_id):
@@ -90,6 +36,7 @@ class FotMobCrawler:
     def get_team_weekly_matches(self, start_date, end_date, team_data, team_id):
         """Collect raw data for the team's recent matches"""
         team_name = team_data.get('details', {}).get('name', 'Unknown')
+        team_name = self._transform_team_name(team_name)
 
         matches = []
 
@@ -106,37 +53,41 @@ class FotMobCrawler:
                 continue 
             
             if start_date <= match_date <= end_date:
-                match_id = match.get('id')
+                finished = match.get('status', {}).get('finished')
+                
+                if not finished:
+                    continue
+                
+                match_url = match.get('pageUrl')
                 opponent = match.get('opponent', {}).get('name')
                 score = match.get('status', {}).get('scoreStr')
+
+                home_team = match.get('home', {}).get('name')
+                away_team = match.get('away', {}).get('name')
                 
-                details = self._analyze_match_details(match_id, team_id)
+                details = self._analyze_match_details(match_url)
                 
                 match_summary = {
                     "utc_date": match_time_str,
                     "local_date_str": match_date.strftime("%Y-%m-%d %H:%M"),
                     "opponent": opponent,
                     "score": score,
-                    "home_team": team_name if details['venue'] == "Home" else opponent, 
-                    "away_team": opponent if details['venue'] == "Home" else team_name,
+                    "home_team": home_team, 
+                    "away_team": away_team,
                     "competition": details['competition'],
-                    "venue": details['venue'],
-                    "mom": details['mom'],
+                    "venue": "Home" if home_team == team_name else "Away",
                     "stats": details['stats'],
                     "events": details['events']
                 }
                 matches.append(match_summary)
-                time.sleep(0.8) 
+                time.sleep(0.5)
 
         return matches
 
 
     def get_team_weekly_transfers(self, start_date, end_date, team_data, team_id):
         """Collect raw data for the team's recent transfers"""
-        print(f"🔄 Collecting data for Team {team_data['details']['name']}... ({start_date.date()} ~ {end_date.date()})")
-
-        team_name = team_data.get('details', {}).get('name', 'Unknown')
-        
+        print(f"🔄 Collecting data for Team {team_data['details']['name']}... ({start_date.date()} ~ {end_date.date()})")        
         transfers = []
 
         transfers_data = self._get_json("transfers", params={"id": team_id, "type": "team"})
@@ -175,189 +126,270 @@ class FotMobCrawler:
         }
         return report_data
 
-    def _analyze_match_events(self, home_team_name, away_team_name, events):
-        result = []
-        for event in events:
-            evt_type = event.get('type')
-            minute = event.get('time')
-            is_home_event = event.get('isHome')
-            event_team = home_team_name if is_home_event else away_team_name
-            
-            primary_player_obj = event.get('player')
-            primary_player_name = self._get_safe_name(primary_player_obj)
-            
-            desc = ""
-            
-            if evt_type == 'Goal':
-                kind = event.get('kind')
-                goal_prefix = "⚽ Goal"
-                if kind == 'own-goal': goal_prefix = "⚽ Own Goal"
-                if kind == 'penalty': goal_prefix = "⚽ Penalty Goal"
-                
-                desc = f"{goal_prefix}: {primary_player_name}"
-                
-                assist_obj = event.get('assistPlayer')
-                if assist_obj:
-                    assist_name = self._get_safe_name(assist_obj)
-                    if assist_name and assist_name != "Unknown":
-                        desc += f" (Assist: {assist_name})"
+    
+    def _transform_team_name(self, team_name):
+        team_name_dict = {
+            "Manchester United": "Man United",
+            "Liverpool": "Liverpool",
+            "Chelsea": "Chelsea",
+            "Arsenal": "Arsenal",
+            "Manchester City": "Man City",
+            "Tottenham Hotspur": "Tottenham"
+        }
+        return team_name_dict.get(team_name, team_name)
+    
 
-            elif evt_type == 'Card':
-                card_val = event.get('card', '')
-                icon = "🟥" if card_val == 'Red' else "🟨"
-                desc = f"{icon} {card_val} Card: {primary_player_name}"
-            
+    def _get_competition(self, page):
+        try:
+            container = page.locator('[class*="MFHeaderLeagueCSS"]')
+            span = container.locator("span")
+
+            competition = span.first.inner_text()
+            return competition
+        except:
+            return None
+
+
+    def _get_possesion(self, page):
+        try:
+            spans = page.locator('[class*="PossessionSegment"] span')
+
+            home_possesion = spans.nth(0).inner_text()
+            away_possesion = spans.nth(1).inner_text()
+
+            return home_possesion, away_possesion
+        except:
+            return None, None
+
+
+    def _get_xg_point(self, page):
+        try:
+            spans = page.locator('[class*="StatValue"] span')
+
+            home_xg = spans.nth(0).inner_text()
+            away_xg = spans.nth(1).inner_text()
+
+            return home_xg, away_xg
+        except:
+            return None, None
+
+
+    def _get_total_shots(self, page):
+        try:
+            spans = page.locator('[class*="StatValue"] span')
+
+            home_total_shots = spans.nth(2).inner_text()
+            away_total_shots = spans.nth(3).inner_text()
+
+            return home_total_shots, away_total_shots
+        except:
+            return None, None
+
+
+    def _analyze_match_details(self, match_url):
+        url = "https://www.fotmob.com" + match_url
+        print(url)
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            page = browser.new_page()
+            page.set_default_timeout(10000)
+            page.set_default_navigation_timeout(30000)
+
+            page.goto(url)
+            time.sleep(10)
+
+            competition = self._get_competition(page)
+            home_possesion, away_possesion = self._get_possesion(page)
+            home_xg, away_xg = self._get_xg_point(page)
+            home_total_shots, away_total_shots = self._get_total_shots(page)
+            events = self._parse_match_events(page)
+
+            browser.close() 
+
+            match_details = {
+                "competition": competition,
+                "stats": {
+                    "possesion": {
+                        "home": home_possesion,
+                        "away": away_possesion
+                    },
+                    "xg_point": {
+                        "home": home_xg,
+                        "away": away_xg
+                    },
+                    "total_shots": {
+                        "home": home_total_shots,
+                        "away": away_total_shots
+                    }
+                },
+                "events": events
+            }
+            return match_details
+
+
+    def _safe_text(self, locator):
+        return locator.first.inner_text().strip() if locator.count() else None
+
+
+    def _detect_event_type(self, item):
+        if item.locator('[class*="SubIn"]').count() > 0:
+            return "substitution"
+        if item.locator('[class*="GoalIconWrapper"]').count() > 0:
+            return "goal"
+        if item.locator('svg g[id$="card-icon"]').count() > 0:
+            return "card"
+        return "unknown"
+
+
+    def _parse_extract_time(self, item):
+        wrapper = item.locator(
+            'xpath=ancestor::div[contains(@class,"MatchEventItemWrapper")]'
+        )
+        regular_time = self._safe_text(wrapper.locator('[class*="EventTimeMain"]'))
+        added_time = self._safe_text(wrapper.locator('[class*="EventTimeAdded"]'))
+
+        regular_time = ''.join(re.findall(r'\d+', regular_time))
+        if added_time:
+            added_time = ''.join(re.findall(r'\d+', added_time))
+        return regular_time + '+' + added_time if added_time else regular_time
+
+
+    def _detect_side(self, item):
+        wrapper = item.locator(
+            'xpath=ancestor::div[contains(@class,"MatchEventItemWrapper")]'
+        )
+        time_el = wrapper.locator('[class*="EventTimeWrapper"]').first
+        item_el = wrapper.locator('[class*="TwoLineText"]').first
+
+        if not time_el.count() or not item_el.count():
+            return None
+
+        try:
+            time_x = time_el.bounding_box()["x"]
+            item_x = item_el.bounding_box()["x"]
+
+            # 시간 → 이벤트 (왼쪽에 시간)
+            if time_x < item_x:
+                return "away"
+            else:
+                return "home"
+
+        except Exception:
+            return None
+
+
+    def _parse_substitution(self, item):
+        return {
+            "player_in": self._safe_text(item.locator('[class*="SubIn"]')),
+            "player_out": self._safe_text(item.locator('[class*="SubOut"]')),
+        }
+
+    def _parse_goal(self, item):
+        return {
+            "scorer": self._safe_text(
+                item.locator('[class*="PlayerLinkWrapper"] span')
+            ),
+            "score": self._safe_text(
+                item.locator('[class*="GoalStringCSS"]')
+            ),
+            "assist": re.sub(r'assist by ', '', item.locator('[class*="SecondaryText"]').last.inner_text().strip()) if item.locator('[class*="SecondaryText"]').count() > 0 else None,
+        }
+
+    def _parse_card(self, item):
+        player_name = self._safe_text(
+            item.locator('[class*="PlayerLinkWrapper"] span')
+        )
+
+        if not player_name:
+            return {"player": None, "card_type": None}
+
+        shapes = item.locator("svg rect, svg path")
+
+        fills = [
+            (shapes.nth(i).get_attribute("fill") or "").lower()
+            for i in range(shapes.count())
+        ]
+
+        has_yellow = any("yellow" in f for f in fills)
+        has_red = any("red" in f for f in fills)
+
+        if has_yellow and has_red:
+            return {"player": player_name, "card_type": "Red Card (Second Yellow Card)"}
+        if has_yellow:
+            return {"player": player_name, "card_type": "Yellow Card"}
+        if has_red:
+            return {"player": player_name, "card_type": "Red Card"}
+
+        return {"player": None, "card_type": None}
+
+    def _parse_match_events(self, page):
+        events = []
+        items = page.locator('[class*="MatchEventItemWrapper"] >> [class*="EventItemCSS"]:visible')
+
+        count = items.count()
+
+        for i in range(count):
+            item = items.nth(i)
+            event_type = self._detect_event_type(item)
+            data = {
+                "time": self._parse_extract_time(item),
+                "type": event_type,
+                "side": self._detect_side(item),
+            }
+
+            # type-specific parsing
+            if event_type == "substitution":
+                data.update(self._parse_substitution(item))
+
+            elif event_type == "goal":
+                data.update(self._parse_goal(item))
+
+            elif event_type == "card":
+                data.update(self._parse_card(item))
             else:
                 continue
 
-            result.append({
-                "time": f"{minute}'",
-                "team": event_team,
-                "description": desc
-            })
-        return result
-
-
-    def _analyze_match_mom(self, player_of_the_match):
-        if not player_of_the_match:
-            return "N/A"
-        mom_name = self._get_safe_name(player_of_the_match)
-        mom_rating = player_of_the_match.get('rating', {}).get('num', 'N/A')
-        mom_team = player_of_the_match.get('teamName', '')
-        return f"{mom_name} ({mom_team}, Rating: {mom_rating})"
-
-
-    def _analyze_match_competition(self, league, round_raw):
-        round_name = self._format_round_info(round_raw)
-        return f"{league} - {round_name}"
-
-
-    def _analyze_match_venue(self, home_team_id, team_id):
-        return "Home" if home_team_id == team_id else "Away"
-
-
-    def _extract_match_stats(self, content_data):
-        """
-        경기 세부 통계 추출 (로그 기반 구조 확정)
-        """
-        stats_list = []
-        
-        stats_wrapper = content_data.get('stats')
-        if not stats_wrapper:
-            return []
-
-        all_stat_items = []
-
-        periods = stats_wrapper.get('Periods', {})
-        all_periods = periods.get('All', {})
-        sections = all_periods.get('stats', [])
-
-        for section in sections:
-            items = section.get('stats', [])
-            all_stat_items.extend(items)
-
-        target_map = {
-            "Ball possession":      (["BallPossesion", "possession"], ["Ball possession", "점유율"]),
-            "Expected goals (xG)":  (["expected_goals", "expected_goals_team"], ["Expected goals (xG)", "기대 득점 (xG)"]),
-            "Total shots":          (["shots_total", "total_shots"], ["Total shots", "슈팅"]),
-            "Shots on target":      (["shots_on_target"], ["Shots on target", "유효 슈팅"]),
-            "Big chances":          (["big_chance", "big_chances"], ["Big chances", "결정적 기회"]),
-            "Passes accurate":      (["passes_accurate"], ["Passes accurate", "패스 성공"]),
-            "Fouls committed":      (["fouls"], ["Fouls committed", "파울"]),
-            "Corners":              (["corners"], ["Corners", "코너킥"])
-        }
-
-        seen_keys = set()
-
-        for item in all_stat_items:
-            item_key = item.get('key')
-            item_title = item.get('title')
-            stat_values = item.get('stats', [])
-
-            if len(stat_values) != 2:
-                continue
-            
-            found_target_title = None
-            for target_title, identifiers in target_map.items():
-                keys_list, titles_list = identifiers
-                
-                if item_key and item_key in keys_list:
-                    found_target_title = target_title
-                    break
-                
-                if item_title and item_title in titles_list:
-                    found_target_title = target_title
-                    break
-            
-            if found_target_title and found_target_title not in seen_keys:
-                stats_list.append({
-                    "title": found_target_title,
-                    "home": stat_values[0],
-                    "away": stat_values[1]
-                })
-                seen_keys.add(found_target_title)
-                
-        return stats_list
-    
-
-    def _analyze_match_details(self, match_id, team_id):
-        data = self._get_json("matchDetails", params={"matchId": match_id})
-        result = {} # competition, venue, mom, events
-        
-        if not data:
-            return result
-
-        general = data.get('general', {})
-        content = data.get('content', {})
-        match_facts = content.get('matchFacts', {})
-
-        result['competition'] = self._analyze_match_competition(
-            league=general.get('leagueName', ''), 
-            round_raw=general.get('matchRound', '')
-        )
-        result['venue'] = self._analyze_match_venue(
-            home_team_id=general.get('homeTeam', {}).get('id'), 
-            team_id=team_id
-        )
-        result['mom'] = self._analyze_match_mom(player_of_the_match=match_facts.get('playerOfTheMatch', {}))
-        result['stats'] = self._extract_match_stats(content)
-        result['events'] = self._analyze_match_events(home_team_name=general.get('homeTeam', {}).get('name'), 
-            away_team_name=general.get('awayTeam', {}).get('name'), 
-            events=match_facts.get('events', {}).get('events', [])
-        )
-        
-        return result
-
+            events.append(data)
+        return events
 
     def generate_matches_markdown_report(self, matches):
         if not matches:
             return None
         md = ""
         for match in matches:
-                md += f"## 🏟️ Match: vs {match['opponent']}\n"
-                md += f"- **Competition:** {match['competition']}\n"
-                md += f"- **Date:** {match['local_date_str']}\n"
-                md += f"- **Venue:** {match['venue']}\n"
-                md += f"- **Score:** {match['score']}\n"
-                md += f"- **Man of the Match:** {match['mom']}\n"
-                
-                if not match['stats']:
-                    md += "- No match stats recorded.\n"
-                else:
-                    md += "\n**📊 Match Stats:**\n"
-                    md += f"| Stat | {match['home_team']} | {match['away_team']} |\n"
-                    md += "|---|:-:|:-:|\n"
-                    for s in match['stats']:
-                        md += f"| {s['title']} | {s['home']} | {s['away']} |\n"
+            md += f"## 🏟️ Match: vs {match['opponent']}\n"
+            md += f"- **Competition:** {match['competition']}\n"
+            md += f"- **Date:** {match['local_date_str']}\n"
+            md += f"- **Venue:** {match['venue']}\n"
+            md += f"- **Score:** {match['score']}\n"
+            
+            if not match['stats']:
+                md += "- No match stats recorded.\n"
+            else:
+                md += "\n**📊 Match Stats:**\n"
+                md += f"| Stat | {match['home_team']} | {match['away_team']} |\n"
+                md += "|---|:-:|:-:|\n"
+                for s in match['stats'].keys():
+                    if s == 'possesion':
+                        md += f"| Ball Possesion | {match['stats'][s]['home']} | {match['stats'][s]['away']} |\n"
+                    elif s == 'xg_point':
+                        md += f"| Expected goals (xG) | {match['stats'][s]['home']} | {match['stats'][s]['away']} |\n"
+                    elif s == 'total_shots':
+                        md += f"| Total Shots | {match['stats'][s]['home']} | {match['stats'][s]['away']} |\n"
 
-                md += "\n**⏱️ Key Events:**\n"
-                if not match['events']:
-                    md += "- No major events recorded.\n"
-                else:
-                    for evt in match['events']:
-                        md += f"- `{evt['time']}` **{evt['team']}**: {evt['description']}\n"
-                
-                md += "\n---\n\n"
+            if not match['events']:
+                md += "- No match events recorded.\n"
+            else:
+                md += "\n**⏱️ Match Events:**\n"
+                for e in match['events']:
+                    md += f"- `{e['time']}'` **{match['home_team'] if e['side'] == 'home' else match['away_team']}**:"
+                    if e['type'] == 'substitution':
+                        md += f"  - 🔄 Player Substitution: {e['player_out']} -> {e['player_in']}\n"
+                    elif e['type'] == 'goal':
+                        md += f"  - ⚽ Goal: {e['scorer']} {e['score']} (assist by {e['assist']})\n"
+                    elif e['type'] == 'card':
+                        md += f"  - {'🟨' if e['card_type'] == 'Yellow Card' else '🟥'} {e['card_type']}: {e['player']}\n"
+            md += "---\n"
         return md
 
     
