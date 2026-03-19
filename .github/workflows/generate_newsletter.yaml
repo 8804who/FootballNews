@@ -1,0 +1,45 @@
+name: generate_newsletter
+
+on:
+  schedule:
+    - cron: '0 22 * * 0' # 07:00 KST Monday (every week)
+  workflow_dispatch:
+
+jobs:
+  generate_newsletter:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Authenticate with GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.12
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Download past 7 days of football data from GCS
+        run: |
+          for i in $(seq 1 7); do
+            DATE=$(date -d "-${i} days" +%Y%m%d)
+            gsutil -m cp -r \
+              gs://football-newsletter-bucket/football-news/datas/fotmob/${DATE} \
+              datas/fotmob/${DATE} || true
+          done
+
+      - name: Generate newsletter
+        run: |
+          python generate_newsletter.py
+
+      - name: Upload newsletter to GCS
+        run: |
+          gsutil cp -r datas/newsletter/$(date +%Y%m%d) \
+            gs://football-newsletter-bucket/football-news/datas/newsletter/$(date +%Y%m%d)

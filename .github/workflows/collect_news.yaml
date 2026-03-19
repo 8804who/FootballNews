@@ -1,0 +1,38 @@
+name: collect_news
+
+on:
+  schedule:
+    - cron: '0 19 * * *' # 04:00 KST
+  workflow_dispatch:
+
+jobs:
+  collect_news:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Authenticate with GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.12
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Run collect_news.py
+        run: |
+          python collect_news.py
+
+      - name: Upload football data
+        run: |
+          gsutil cp -r datas/fotmob/$(date +%Y%m%d) gs://football-newsletter-bucket/football-news/datas/fotmob/$(date +%Y%m%d)
+          if [ -d "datas/news_rss/$(date +%Y%m%d)" ]; then
+            gsutil cp -r datas/news_rss/$(date +%Y%m%d) gs://football-newsletter-bucket/football-news/datas/news_rss/$(date +%Y%m%d)
+          fi
