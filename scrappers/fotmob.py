@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import requests
 import re
 import time
@@ -25,7 +25,7 @@ class FotMobCrawler:
             return None
 
 
-    def get_team_data(self, team_id):
+    def _get_team_data(self, team_id):
         """Collect raw data for the team"""
         team_data = self._get_json("teams", params={"id": team_id})
         if not team_data:
@@ -33,7 +33,7 @@ class FotMobCrawler:
         return team_data
 
 
-    def get_team_weekly_matches(self, start_date, end_date, team_data, team_id):
+    def get_team_matches(self, start_date, end_date, team_data, team_id):
         """Collect raw data for the team's recent matches"""
         team_name = team_data.get('details', {}).get('name', 'Unknown')
         team_name = self._transform_team_name(team_name)
@@ -85,7 +85,7 @@ class FotMobCrawler:
         return matches
 
 
-    def get_team_weekly_transfers(self, start_date, end_date, team_data, team_id):
+    def get_team_transfers(self, start_date, end_date, team_data, team_id):
         """Collect raw data for the team's recent transfers"""
         print(f"🔄 Collecting data for Team {team_data['details']['name']}... ({start_date.date()} ~ {end_date.date()})")        
         transfers = []
@@ -109,14 +109,19 @@ class FotMobCrawler:
         return transfers
 
 
-    def get_team_weekly_data(self, start_date, end_date, team_id):
-        """Collect raw data for the team's recent matches"""
-        team_data = self.get_team_data(team_id)
+    def get_team_data(self, start_date, end_date, team_id):
+        """Collect match and transfer data for the team within the given date range"""
+        if isinstance(start_date, str):
+            start_date = datetime.strptime(start_date, '%Y%m%d').replace(tzinfo=timezone.utc)
+        if isinstance(end_date, str):
+            end_date = datetime.strptime(end_date, '%Y%m%d').replace(tzinfo=timezone.utc) + timedelta(days=1) - timedelta(seconds=1)
+
+        team_data = self._get_team_data(team_id)
         if not team_data:
             return None
 
-        matches_data = self.get_team_weekly_matches(start_date, end_date, team_data, team_id)
-        transfers_data = self.get_team_weekly_transfers(start_date, end_date, team_data, team_id)
+        matches_data = self.get_team_matches(start_date, end_date, team_data, team_id)
+        transfers_data = self.get_team_transfers(start_date, end_date, team_data, team_id)
 
         report_data = {
             "team_name": team_data['details']['name'],

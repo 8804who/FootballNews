@@ -15,7 +15,7 @@ def get_fotmob_data(team, start_date, end_date):
         target_team_id = fotmob_team['id']
         team_name = fotmob_team['name'].replace(" ", "_")
     
-        raw_data = fot_mob_crawler.get_team_weekly_data(start_date, end_date, target_team_id)
+        raw_data = fot_mob_crawler.get_team_data(start_date, end_date, target_team_id)
         matches_output = fot_mob_crawler.generate_markdown_report(raw_data, 'matches')
         transfers_output = fot_mob_crawler.generate_markdown_report(raw_data, 'transfers')
         
