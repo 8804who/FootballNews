@@ -37,7 +37,7 @@ jobs:
           for i in $(seq 1 7); do
             DATE=$(date -d "-${i} days" +%Y%m%d)
             gsutil -m cp -r \
-              gs://football-newsletter-bucket/football-news/datas/fotmob/${DATE} \
+              gs://my-football-news/football-news/datas/fotmob/${DATE} \
               datas/fotmob/${DATE} || true
           done
 
@@ -48,4 +48,4 @@ jobs:
       - name: Upload newsletter to GCS
         run: |
           gsutil cp -r datas/newsletter/$(date +%Y%m%d) \
-            gs://football-newsletter-bucket/football-news/datas/newsletter/$(date +%Y%m%d)
+            gs://my-football-news/football-news/datas/newsletter/$(date +%Y%m%d)

@@ -38,7 +38,7 @@ jobs:
 
       - name: Upload football data
         run: |
-          gsutil cp -r datas/fotmob/$(date +%Y%m%d) gs://football-newsletter-bucket/football-news/datas/fotmob/$(date +%Y%m%d)
+          gsutil cp -r datas/fotmob/$(date +%Y%m%d) gs://my-football-news/football-news/datas/fotmob/$(date +%Y%m%d)
           if [ -d "datas/news_rss/$(date +%Y%m%d)" ]; then
-            gsutil cp -r datas/news_rss/$(date +%Y%m%d) gs://football-newsletter-bucket/football-news/datas/news_rss/$(date +%Y%m%d)
+            gsutil cp -r datas/news_rss/$(date +%Y%m%d) gs://my-football-news/football-news/datas/news_rss/$(date +%Y%m%d)
           fi
