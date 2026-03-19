@@ -8,6 +8,12 @@ on:
 jobs:
   collect_news:
     runs-on: ubuntu-latest
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      GOOGLE_CLOUD_EMAIL: ${{ secrets.GOOGLE_CLOUD_EMAIL }}
+      GOOGLE_CLOUD_SPREADSHEET_URL: ${{ secrets.GOOGLE_CLOUD_SPREADSHEET_URL }}
+      SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+      SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
