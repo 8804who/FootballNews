@@ -26,10 +26,53 @@ class FotMobCrawler:
 
 
     def _get_team_data(self, team_id):
-        """Collect raw data for the team"""
-        team_data = self._get_json("teams", params={"id": team_id})
+        """Collect raw data for the team by intercepting the browser's API request"""
+        team_data = None
+
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            page = browser.new_page()
+            page.set_default_timeout(30000)
+            page.set_default_navigation_timeout(30000)
+
+            def handle_response(response):
+                nonlocal team_data
+                if team_data:
+                    return
+                if "fotmob.com" not in response.url:
+                    return
+                try:
+                    data = response.json()
+                    if isinstance(data, dict) and "fixtures" in data and "details" in data:
+                        print(f"Captured team data from: {response.url}")
+                        team_data = data
+                except Exception:
+                    pass
+
+            page.on("response", handle_response)
+            page.goto(f"https://www.fotmob.com/teams/{team_id}/overview")
+            page.wait_for_timeout(8000)
+
+            # Fallback: extract from Next.js __NEXT_DATA__ embedded in the page
+            if not team_data:
+                try:
+                    next_data = page.evaluate(
+                        "() => JSON.parse(document.getElementById('__NEXT_DATA__').textContent)"
+                    )
+                    page_props = next_data.get("props", {}).get("pageProps", {})
+                    if "fixtures" in page_props and "details" in page_props:
+                        team_data = page_props
+                    elif "team" in page_props:
+                        team_data = page_props["team"]
+                    if team_data:
+                        print("Captured team data from __NEXT_DATA__")
+                except Exception as e:
+                    print(f"__NEXT_DATA__ extraction failed: {e}")
+
+            browser.close()
+
         if not team_data:
-            return None
+            print(f"Error fetching teams: could not capture data for team_id={team_id}")
         return team_data
 
 
@@ -41,7 +84,7 @@ class FotMobCrawler:
         matches = []
 
         all_fixtures = team_data.get('fixtures', {}).get('allFixtures', {}).get('fixtures', [])
-        
+
         for match in all_fixtures:
             match_time_str = match.get('status', {}).get('utcTime')
             if not match_time_str:
@@ -85,15 +128,54 @@ class FotMobCrawler:
         return matches
 
 
+    def _get_transfers_data(self, team_id):
+        """Fetch raw transfers data by intercepting the browser's API request"""
+        transfers_data = None
+
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            page = browser.new_page()
+            page.set_default_timeout(30000)
+            page.set_default_navigation_timeout(30000)
+
+            def handle_response(response):
+                nonlocal transfers_data
+                if transfers_data:
+                    return
+                if "fotmob.com" not in response.url:
+                    return
+                try:
+                    data = response.json()
+                    if isinstance(data, dict) and "transfers" in data:
+                        print(f"Captured transfers data from: {response.url}")
+                        transfers_data = data
+                    elif isinstance(data, list) and data and "transferDate" in data[0]:
+                        print(f"Captured transfers data from: {response.url}")
+                        transfers_data = {"transfers": data}
+                except Exception:
+                    pass
+
+            page.on("response", handle_response)
+            page.goto(f"https://www.fotmob.com/teams/{team_id}/transfers")
+            page.wait_for_timeout(8000)
+            browser.close()
+
+        if not transfers_data:
+            print(f"Error fetching transfers: could not capture data for team_id={team_id}")
+        return transfers_data
+
     def get_team_transfers(self, start_date, end_date, team_data, team_id):
         """Collect raw data for the team's recent transfers"""
-        print(f"🔄 Collecting data for Team {team_data['details']['name']}... ({start_date.date()} ~ {end_date.date()})")        
+        print(f"🔄 Collecting data for Team {team_data['details']['name']}... ({start_date.date()} ~ {end_date.date()})")
         transfers = []
 
-        transfers_data = self._get_json("transfers", params={"id": team_id, "type": "team"})
+        transfers_data = self._get_transfers_data(team_id)
         if transfers_data:
-            t_list = transfers_data if isinstance(transfers_data, list) else transfers_data.get('transfers', [])
+            raw = transfers_data.get('transfers', [])
+            t_list = raw if isinstance(raw, list) else []
             for t in t_list:
+                if not isinstance(t, dict):
+                    continue
                 t_date_str = t.get('transferDate')
                 if t_date_str:
                     try:
@@ -104,7 +186,7 @@ class FotMobCrawler:
                                 "type": f"{t.get('fromClub')} -> {t.get('toClub')}",
                                 "date": t_date_str
                             })
-                    except:
+                    except Exception:
                         pass
         return transfers
 
@@ -193,7 +275,6 @@ class FotMobCrawler:
 
     def _analyze_match_details(self, match_url):
         url = "https://www.fotmob.com" + match_url
-        print(url)
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=True)
             page = browser.new_page()

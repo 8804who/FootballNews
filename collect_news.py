@@ -1,5 +1,5 @@
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from config import FOTMOB_TEAMS, TEAMS
 from scrappers.fotmob import fot_mob_crawler
@@ -20,23 +20,24 @@ def get_fotmob_data(team, start_date, end_date):
         transfers_output = fot_mob_crawler.generate_markdown_report(raw_data, 'transfers')
         
         os.makedirs(f"datas/fotmob/{datetime.now().strftime('%Y%m%d')}", exist_ok=True)
-        with open(f"datas/fotmob/{datetime.now().strftime('%Y%m%d')}/team_weekly_report_{team_name}_matches.md", "w") as f:
+        with open(f"datas/fotmob/{datetime.now().strftime('%Y%m%d')}/team_daily_report_{team_name}_matches.md", "w") as f:
             f.write(matches_output if matches_output else "")
-        with open(f"datas/fotmob/{datetime.now().strftime('%Y%m%d')}/team_weekly_report_{team_name}_transfers.md", "w") as f:
+        with open(f"datas/fotmob/{datetime.now().strftime('%Y%m%d')}/team_daily_report_{team_name}_transfers.md", "w") as f:
             f.write(transfers_output if transfers_output else "")
 
 def get_news_rss_data(team):
     news_items = news_rss.get_transfer_news_rss(team['name'])
     markdown_output = news_rss.get_transfer_news_rss_markdown(news_items)
     os.makedirs(f"datas/news_rss/{datetime.now().strftime('%Y%m%d')}", exist_ok=True)
-    with open(f"datas/news_rss/{datetime.now().strftime('%Y%m%d')}/team_weekly_report_{team['name'].replace(" ", "_")}.md", "w") as f:
+    with open(f"datas/news_rss/{datetime.now().strftime('%Y%m%d')}/team_daily_report_{team['name'].replace(" ", "_")}.md", "w") as f:
         f.write(markdown_output if markdown_output else "There is no transfer news this week.")
 
 
 
 if __name__ == "__main__":
     today = datetime.now().strftime('%Y%m%d')
+    start_date = (datetime.now() - timedelta(days=7)).strftime('%Y%m%d')
 
     for team in TEAMS:
-        get_fotmob_data(team, today, today)
+        get_fotmob_data(team, start_date, today)
         get_news_rss_data(team)
