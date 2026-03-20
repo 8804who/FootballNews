@@ -2,7 +2,7 @@ name: collect_news
 
 on:
   schedule:
-    - cron: '0 19 * * *' # 04:00 KST
+    - cron: '0 23 * * *' # 08:00 KST
   workflow_dispatch:
 
 jobs:
