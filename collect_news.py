@@ -39,5 +39,5 @@ if __name__ == "__main__":
     start_date = (datetime.now() - timedelta(days=7)).strftime('%Y%m%d')
 
     for team in TEAMS:
-        get_fotmob_data(team, start_date, today)
+        get_fotmob_data(team, today, today)
         get_news_rss_data(team)
