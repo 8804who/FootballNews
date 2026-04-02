@@ -14,8 +14,8 @@ def load_weekly_data(team_name: str, start_date: datetime, end_date: datetime):
     while current < end_date:
         date_str = current.strftime('%Y%m%d')
 
-        matches_path = f"datas/fotmob/{date_str}/team_weekly_report_{team_name_normalized}_matches.md"
-        transfers_path = f"datas/fotmob/{date_str}/team_weekly_report_{team_name_normalized}_transfers.md"
+        matches_path = f"datas/fotmob/{date_str}/team_daily_report_{team_name_normalized}_matches.md"
+        transfers_path = f"datas/fotmob/{date_str}/team_daily_report_{team_name_normalized}_transfers.md"
 
         if os.path.exists(matches_path):
             with open(matches_path, "r") as f:
@@ -27,13 +27,13 @@ def load_weekly_data(team_name: str, start_date: datetime, end_date: datetime):
 
         current += timedelta(days=1)
 
-    return matches_data.strip() or None, transfers_data.strip() or None
+    return matches_data.strip(), transfers_data.strip()
 
 
 if __name__ == "__main__":
     today = datetime.now(timezone.utc)
     end_date = today
-    start_date = today - timedelta(days=7)
+    start_date = today - timedelta(days=21)
     today_str = today.strftime('%Y%m%d')
 
     for team in TEAMS:
