@@ -33,7 +33,7 @@ def load_weekly_data(team_name: str, start_date: datetime, end_date: datetime):
 if __name__ == "__main__":
     today = datetime.now(timezone.utc)
     end_date = today
-    start_date = today - timedelta(days=21)
+    start_date = today - timedelta(days=7)
     today_str = today.strftime('%Y%m%d')
 
     for team in TEAMS:
