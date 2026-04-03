@@ -484,7 +484,7 @@ class FotMobCrawler:
             return None
         md = "## 🔁 Transfer Updates\n"
         for t in transfers:
-            md += f"- **{t['player']}**: {t['type']} ({t['date'].split('T')[0]})\n"
+            md += f"- **Player:** {t['player']} **Type:** {t['type']} **Date:** {t['date'].split('T')[0]}\n"
         return md
 
 

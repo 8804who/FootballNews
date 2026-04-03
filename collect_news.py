@@ -27,7 +27,7 @@ def get_fotmob_data(team, start_date, end_date):
 
 def get_news_rss_data(team):
     news_items = news_rss.get_transfer_news_rss(team['name'])
-    markdown_output = news_rss.get_transfer_news_rss_markdown(news_items)
+    markdown_output = news_rss.get_news_rss_markdown(news_items, team['name'])
     os.makedirs(f"datas/news_rss/{datetime.now().strftime('%Y%m%d')}", exist_ok=True)
     with open(f"datas/news_rss/{datetime.now().strftime('%Y%m%d')}/team_daily_report_{team['name'].replace(" ", "_")}.md", "w") as f:
         f.write(markdown_output if markdown_output else "There is no transfer news this week.")
