@@ -59,9 +59,52 @@ class LLMSummarizer:
         if not transfers_data:
             return None
         system_prompt = self.generate_prompt("system_prompt")
-        prompt = self.generate_prompt("transfers_report", transfers_data)
+
+        example = self.generate_example("transfers_report")
+
+        example_prompt = PromptTemplate(
+            input_variables=["input", "output"],
+            template="Input:\n{input}\n\nOutput:\n{output}\n"
+        )
+
+        transfers_prompt_template = self.generate_prompt("transfers_report")
+
+        few_shot_prompt = FewShotPromptTemplate(
+            examples=example,
+            example_prompt=example_prompt,
+            prefix=transfers_prompt_template,
+            suffix="Input:\n{input}\n\nOutput:\n",
+            input_variables=["input"]
+        )
+
+        prompt = few_shot_prompt.format(input=transfers_data)
         return self.llm.invoke(system_prompt + prompt)
 
+
+    def generate_news_rss_report(self, news_rss_data: str) -> str:
+        if not news_rss_data:
+            return None
+        system_prompt = self.generate_prompt("system_prompt")
+
+        example = self.generate_example("news_rss_report")
+
+        example_prompt = PromptTemplate(
+            input_variables=["input", "output"],
+            template="Input:\n{input}\n\nOutput:\n{output}\n"
+        )
+
+        news_rss_prompt_template = self.generate_prompt("news_rss_report")
+
+        few_shot_prompt = FewShotPromptTemplate(
+            examples=example,
+            example_prompt=example_prompt,
+            prefix=news_rss_prompt_template,
+            suffix="Input:\n{input}\n\nOutput:\n",
+            input_variables=["input"]
+        )
+
+        prompt = few_shot_prompt.format(input=news_rss_data)
+        return self.llm.invoke(system_prompt + prompt)
 
     def generate_football_term_decoder(self, news_data: str) -> str:
         if not news_data or news_data == "":
@@ -71,16 +114,18 @@ class LLMSummarizer:
         return self.llm.invoke(system_prompt + prompt)
 
 
-    def generate_newsletter(self, matches_data: str, transfers_data: str) -> str:
+    def generate_newsletter(self, matches_data: str, transfers_data: str, news_rss_data: str) -> str:
         matches_report = self.generate_matches_report(matches_data)
         transfers_report = self.generate_transfers_report(transfers_data)
-        football_term_decoder = self.generate_football_term_decoder(matches_data if matches_data else "" + transfers_data if transfers_data else "")
+        news_rss_report = self.generate_news_rss_report(news_rss_data)
+        football_term_decoder = self.generate_football_term_decoder(matches_report_content + transfers_report_content + news_rss_report_content)
 
         matches_report_content = matches_report.content if matches_report else "한 주간 진행된 경기가 없었네요."
         transfers_report_content = transfers_report.content if transfers_report else "한 주간 아무런 이적 소식이 없었네요."
+        news_rss_report_content = news_rss_report.content if news_rss_report else "한 주간 아무런 뉴스 루머가 없었네요."
         football_term_decoder_content = football_term_decoder.content if football_term_decoder else "한 주간 아무런 소식이 없었네요."
 
-        return "\n".join([matches_report_content, transfers_report_content, football_term_decoder_content])
+        return "\n".join([matches_report_content, transfers_report_content, news_rss_report_content, football_term_decoder_content])
         
 
 llmSummarizer = LLMSummarizer()
