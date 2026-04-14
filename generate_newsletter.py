@@ -8,6 +8,7 @@ from summarizers.llm import llmSummarizer
 def load_weekly_data(team_name: str, start_date: datetime, end_date: datetime):
     matches_data = ""
     transfers_data = ""
+    news_rss_data = ""
 
     team_name_normalized = team_name.replace(" ", "_")
     current = start_date
@@ -16,6 +17,7 @@ def load_weekly_data(team_name: str, start_date: datetime, end_date: datetime):
 
         matches_path = f"datas/fotmob/{date_str}/team_daily_report_{team_name_normalized}_matches.md"
         transfers_path = f"datas/fotmob/{date_str}/team_daily_report_{team_name_normalized}_transfers.md"
+        news_rss_path = f"datas/news_rss/{date_str}/team_daily_report_{team_name_normalized}.md"
 
         if os.path.exists(matches_path):
             with open(matches_path, "r") as f:
@@ -25,9 +27,13 @@ def load_weekly_data(team_name: str, start_date: datetime, end_date: datetime):
             with open(transfers_path, "r") as f:
                 transfers_data += f.read() + "\n"
 
+        if os.path.exists(news_rss_path):
+            with open(matches_path, "r") as f:
+                news_rss_data += f.read() + "\n"
+
         current += timedelta(days=1)
 
-    return matches_data.strip(), transfers_data.strip()
+    return matches_data.strip(), transfers_data.strip(), news_rss_data.strip()
 
 
 if __name__ == "__main__":
@@ -38,9 +44,9 @@ if __name__ == "__main__":
 
     for team in TEAMS:
         team_name = team['name']
-        matches_data, transfers_data = load_weekly_data(team_name, start_date, end_date)
+        matches_data, transfers_data, news_rss_data = load_weekly_data(team_name, start_date, end_date)
 
-        newsletter = llmSummarizer.generate_newsletter(matches_data, transfers_data)
+        newsletter = llmSummarizer.generate_newsletter(matches_data, transfers_data, news_rss_data)
 
         os.makedirs(f"datas/newsletter/{today_str}", exist_ok=True)
         output_path = f"datas/newsletter/{today_str}/newsletter_{team_name.replace(' ', '_')}.md"
