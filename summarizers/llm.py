@@ -118,7 +118,7 @@ class LLMSummarizer:
         matches_report = self.generate_matches_report(matches_data)
         transfers_report = self.generate_transfers_report(transfers_data)
         news_rss_report = self.generate_news_rss_report(news_rss_data)
-        football_term_decoder = self.generate_football_term_decoder(matches_report_content + transfers_report_content + news_rss_report_content)
+        football_term_decoder = self.generate_football_term_decoder(matches_report + transfers_report + news_rss_report)
 
         matches_report_content = matches_report.content if matches_report else "한 주간 진행된 경기가 없었네요."
         transfers_report_content = transfers_report.content if transfers_report else "한 주간 아무런 이적 소식이 없었네요."
