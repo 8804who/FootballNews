@@ -1,0 +1,44 @@
+name: send_mail
+
+on:
+  schedule:
+    - cron: '0 2 * * 1' # 11:00 KST Monday (every week)
+  workflow_dispatch:
+
+jobs:
+  send_mail:
+    runs-on: ubuntu-latest
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      GOOGLE_CLOUD_EMAIL: ${{ secrets.GOOGLE_CLOUD_EMAIL }}
+      GOOGLE_CLOUD_SPREADSHEET_URL: ${{ secrets.GOOGLE_CLOUD_SPREADSHEET_URL }}
+      SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+      SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Authenticate with GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.12
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Download current week's newsletters from GCS
+        run: |
+          DATE=$(TZ=Asia/Seoul date +%Y%m%d)
+          gcloud storage cp -r \
+            gs://my-football-news/football-news/datas/newsletter/${DATE} \
+            datas/newsletter/${DATE}
+
+      - name: send_mail
+        run: |
+          python send_mail.py
