@@ -3,6 +3,7 @@ feedparser==6.0.12
 gspread==6.2.1
 langchain_core==1.2.19
 langchain_openai==1.1.11
+markdown-it-py==4.0.0
 pandas==3.0.1
 playwright==1.58.0
 protobuf==7.34.0
