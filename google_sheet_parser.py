@@ -1,4 +1,7 @@
+import os
+
 from google.oauth2.service_account import Credentials
+import google.auth
 import gspread
 
 from config import GOOGLE_CLOUD, TEAMS
@@ -11,7 +14,10 @@ class GoogleSheetParser:
             "https://www.googleapis.com/auth/drive"
         ]
         self.SERVICE_ACCOUNT_FILE = "gen-lang-client.json"
-        self.credentials = Credentials.from_service_account_file(self.SERVICE_ACCOUNT_FILE, scopes=self.SCOPES)
+        if os.path.exists(self.SERVICE_ACCOUNT_FILE):
+            self.credentials = Credentials.from_service_account_file(self.SERVICE_ACCOUNT_FILE, scopes=self.SCOPES)
+        else:
+            self.credentials, _ = google.auth.default(scopes=self.SCOPES)
         self.gc = gspread.authorize(self.credentials)
         self.spreadsheet_url = GOOGLE_CLOUD["SPREADSHEET_URL"]
         self.doc = self.gc.open_by_url(spreadsheet_url)
