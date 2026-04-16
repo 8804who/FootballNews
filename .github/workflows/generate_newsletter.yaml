@@ -36,6 +36,7 @@ jobs:
         run: |
           for i in $(seq 1 7); do
             DATE=$(TZ=Asia/Seoul date -d "-${i} days" +%Y%m%d)
+            mkdir -p datas/fotmob/${DATE}
             gcloud storage cp -r \
               gs://my-football-news/football-news/datas/fotmob/${DATE} \
               datas/fotmob/${DATE} || true
