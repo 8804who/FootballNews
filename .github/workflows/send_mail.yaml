@@ -34,7 +34,7 @@ jobs:
 
       - name: Download current week's newsletters from GCS
         run: |
-          DATE=$(TZ=Asia/Seoul date +%Y%m%d)
+          DATE=$(date +%Y%m%d)
           mkdir -p datas/newsletter/${DATE}
           gcloud storage cp -r \
             gs://my-football-news/football-news/datas/newsletter/${DATE} \
