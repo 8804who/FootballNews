@@ -35,10 +35,10 @@ jobs:
       - name: Download current week's newsletters from GCS
         run: |
           DATE=$(date +%Y%m%d)
-          mkdir -p datas/newsletter/${DATE}
+          mkdir -p datas/newsletter
           gcloud storage cp -r \
             gs://my-football-news/football-news/datas/newsletter/${DATE} \
-            datas/newsletter/${DATE}
+            datas/newsletter/
 
       - name: send_mail
         run: |

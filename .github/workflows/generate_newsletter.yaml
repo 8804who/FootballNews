@@ -34,12 +34,12 @@ jobs:
 
       - name: Download past 7 days of football data from GCS
         run: |
+          mkdir -p datas/fotmob
           for i in $(seq 1 7); do
             DATE=$(date -d "-${i} days" +%Y%m%d)
-            mkdir -p datas/fotmob/${DATE}
             gcloud storage cp -r \
               gs://my-football-news/football-news/datas/fotmob/${DATE} \
-              datas/fotmob/${DATE} || true
+              datas/fotmob/ || true
           done
 
       - name: Generate newsletter
