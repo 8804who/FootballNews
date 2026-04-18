@@ -7,8 +7,11 @@ from google_sheet_parser import google_sheet_parser
 
 
 def get_newsletter(today, team_name: str) -> str | None:
+
+    team_name_normalized = team_name.replace(" ", "_")
+
     newsletter_data = ""
-    newsletter_path = f"datas/newsletter/{today}/newsletter_{team_name}.md"
+    newsletter_path = f"datas/newsletter/{today}/newsletter_{team_name_normalized}.md"
 
     if not os.path.exists(newsletter_path):
         return ""
