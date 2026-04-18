@@ -11,7 +11,7 @@ def get_newsletter(today, team_name: str) -> str | None:
     newsletter_path = f"datas/newsletter/{today}/newsletter_{team_name}.md"
 
     if not os.path.exists(newsletter_path):
-        return None
+        return ""
 
     if os.path.exists(newsletter_path):
         with open(newsletter_path, "r") as f:
