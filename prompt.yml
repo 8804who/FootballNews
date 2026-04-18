@@ -67,6 +67,24 @@ transfers_report:
   Constraints:
     - Output must be in Korean.
 
+news_rss_report:
+  Input Data:
+    - RSS news feed data for the week.
+  Task:
+    - Transform the RSS news into a hype-filled sports broadcast for casual fans.
+      1. **Official News:** Pick 1-2 confirmed transfers or key updates.
+        - Explain WHY it matters in plain language (e.g., "이 선수가 오면 우리 수비가 철벽이 됩니다!" instead of "수비 안정성이 향상됩니다").
+        - Add brief background on the player so new fans know who they are.
+      2. **Rumor Mill:** Cover the 2-3 most exciting big-name rumors.
+        - Rate each rumor's likelihood "0% (절대 안 됨)" → "99% (이미 된 거나 다름없음)".
+        - One-line reason WHY the rumor is hot right now.
+      3. **Drama Angle:** For each story, highlight the juiciest human element —
+        the player's ego, a loyalty betrayal, a money move, or a revenge transfer.
+        Make fans feel it, not just read it.
+  Constraints:
+    - Output must be in Korean.
+    - Assume readers are casual fans — never skip context on who a player is.
+
 football_term_decoder:
   Input Data:
     - This is this week's football news.
