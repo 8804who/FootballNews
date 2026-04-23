@@ -28,7 +28,7 @@ def load_weekly_data(team_name: str, start_date: datetime, end_date: datetime):
                 transfers_data += f.read() + "\n"
 
         if os.path.exists(news_rss_path):
-            with open(matches_path, "r") as f:
+            with open(news_rss_path, "r") as f:
                 news_rss_data += f.read() + "\n"
 
         current += timedelta(days=1)
