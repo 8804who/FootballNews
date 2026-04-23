@@ -42,8 +42,8 @@ jobs:
 
       - name: Upload football data
         run: |
-          gcloud storage cp -r datas/fotmob/$(date +%Y%m%d) gs://my-football-news/football-news/datas/fotmob/$(date +%Y%m%d)
+          gcloud storage cp -r datas/fotmob/$(date +%Y%m%d)/ gs://my-football-news/football-news/datas/fotmob/$(date +%Y%m%d)/
 
           if [ -d "datas/news_rss/$(date +%Y%m%d)" ]; then
-            gcloud storage cp -r datas/news_rss/$(date +%Y%m%d) gs://my-football-news/football-news/datas/news_rss/$(date +%Y%m%d)
+            gcloud storage cp -r datas/news_rss/$(date +%Y%m%d)/ gs://my-football-news/football-news/datas/news_rss/$(date +%Y%m%d)/
           fi
