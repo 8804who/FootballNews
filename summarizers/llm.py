@@ -55,78 +55,47 @@ class LLMSummarizer:
         return self.llm.invoke(system_prompt + prompt)
 
 
-    def generate_transfers_report(self, transfers_data: str) -> str:
-        if not transfers_data:
+    def generate_transfers_and_news_report(self, transfers_data: str, news_rss_data: str) -> str:
+        if not transfers_data and not news_rss_data:
             return None
         system_prompt = self.generate_prompt("system_prompt")
 
-        example = self.generate_example("transfers_report")
+        example = self.generate_example("transfers_and_news_report")
 
         example_prompt = PromptTemplate(
             input_variables=["input", "output"],
             template="Input:\n{input}\n\nOutput:\n{output}\n"
         )
 
-        transfers_prompt_template = self.generate_prompt("transfers_report")
+        prompt_template = self.generate_prompt("transfers_and_news_report")
 
         few_shot_prompt = FewShotPromptTemplate(
             examples=example,
             example_prompt=example_prompt,
-            prefix=transfers_prompt_template,
+            prefix=prompt_template,
             suffix="Input:\n{input}\n\nOutput:\n",
             input_variables=["input"]
         )
 
-        prompt = few_shot_prompt.format(input=transfers_data)
+        combined_blocks = []
+        combined_blocks.append("### Official Transfers")
+        combined_blocks.append(transfers_data if transfers_data else "(none this week)")
+        combined_blocks.append("")
+        combined_blocks.append("### News & Rumors")
+        combined_blocks.append(news_rss_data if news_rss_data else "(none this week)")
+        combined_data = "\n".join(combined_blocks)
+
+        prompt = few_shot_prompt.format(input=combined_data)
         return self.llm.invoke(system_prompt + prompt)
-
-
-    def generate_news_rss_report(self, news_rss_data: str) -> str:
-        if not news_rss_data:
-            return None
-        system_prompt = self.generate_prompt("system_prompt")
-
-        example = self.generate_example("news_rss_report")
-
-        example_prompt = PromptTemplate(
-            input_variables=["input", "output"],
-            template="Input:\n{input}\n\nOutput:\n{output}\n"
-        )
-
-        news_rss_prompt_template = self.generate_prompt("news_rss_report")
-
-        few_shot_prompt = FewShotPromptTemplate(
-            examples=example,
-            example_prompt=example_prompt,
-            prefix=news_rss_prompt_template,
-            suffix="Input:\n{input}\n\nOutput:\n",
-            input_variables=["input"]
-        )
-
-        prompt = few_shot_prompt.format(input=news_rss_data)
-        return self.llm.invoke(system_prompt + prompt)
-
-    def generate_football_term_decoder(self, news_data: str) -> str:
-        if not news_data or news_data == "":
-            return None
-        system_prompt = self.generate_prompt("system_prompt")
-        prompt = self.generate_prompt("football_term_decoder", news_data)
-        return self.llm.invoke(system_prompt + prompt)
-
 
     def generate_newsletter(self, matches_data: str, transfers_data: str, news_rss_data: str) -> str:
         matches_report = self.generate_matches_report(matches_data)
-        transfers_report = self.generate_transfers_report(transfers_data)
-        news_rss_report = self.generate_news_rss_report(news_rss_data)
+        transfers_and_news_report = self.generate_transfers_and_news_report(transfers_data, news_rss_data)
 
         matches_report_content = matches_report.content if matches_report else "한 주간 진행된 경기가 없었네요."
-        transfers_report_content = transfers_report.content if transfers_report else "한 주간 아무런 이적 소식이 없었네요."
-        news_rss_report_content = news_rss_report.content if news_rss_report else "한 주간 아무런 뉴스 루머가 없었네요."
+        transfers_and_news_content = transfers_and_news_report.content if transfers_and_news_report else "한 주간 아무런 이적 및 뉴스 소식이 없었네요."
 
-        football_term_decoder = self.generate_football_term_decoder(matches_report_content + transfers_report_content + news_rss_report_content)
-        football_term_decoder_content = football_term_decoder.content if football_term_decoder else "한 주간 아무런 소식이 없었네요."
-
-        return "\n".join([matches_report_content, transfers_report_content, news_rss_report_content, football_term_decoder_content])
+        return "\n".join([matches_report_content, transfers_and_news_content])
         
 
 llmSummarizer = LLMSummarizer()
