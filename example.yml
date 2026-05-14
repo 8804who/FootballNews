@@ -10,16 +10,16 @@ matches_report:
       - 45' Arsenal: Goal by Gabriel Jesus
       - 78' Arsenal: Goal by Martin Odegaard
     output: |
-      ## 🏆 메인 헤드라인
-      **Arsenal, Liverpool을 3-1로 격파하며 홈에서 강력한 메시지 전달**
+      ## 🏆 이번 주 헤드라인
+      **Arsenal, Saka·Jesus·Odegaard 골 잔치로 Liverpool 제압**
 
-      ## ⭐ 이번 주 최고의 경기
-      Arsenal이 Liverpool을 상대로 홈에서 3-1 승리를 거두며 강력한 메시지를 전달했다. 사카의 선제골로 시작된 경기에서 살라의 동점골로 긴장감이 고조됐지만, 제주스와 외데고르의 연속골로 승리를 확정지었다.
+      ## ⭐ 이번 주 베스트 경기
+      Arsenal이 홈에서 Liverpool을 3-1로 꺾었습니다. 15분 만에 Bukayo Saka가 선제골로 분위기를 가져왔고, Mohamed Salah에게 동점을 허용했지만 전반 막판 Gabriel Jesus가 다시 앞서 나갔습니다. 후반 78분 Martin Odegaard의 쐐기골로 사실상 경기를 닫아버렸습니다.
 
       ## 📊 한눈에 보는 스코어보드
-      | 경기 | 스코어 | 한줄 요약 |
+      | 경기 | 스코어 | 한 줄 요약 |
       |------|--------|----------|
-      | Arsenal vs Liverpool | 3-1 | 홈에서 리버풀을 완파한 Arsenal의 강력한 무대 |
+      | Arsenal vs Liverpool | 3-1 | Salah 한 골은 잠깐의 위안에 그쳤습니다 |
       ---
   - input: |
       Team: Manchester City
@@ -30,57 +30,52 @@ matches_report:
       - 23' Manchester City: Goal by Erling Haaland
       - 67' Manchester City: Goal by Kevin De Bruyne
     output: |
-      ## 🏆 메인 헤드라인
-      **Manchester City, Chelsea를 2-0으로 격파하며 원정에서 강력한 메시지 전달**
+      ## 🏆 이번 주 헤드라인
+      **Pep의 City, 적지에서도 같은 풍경**
 
-      ## ⭐ 이번 주 최고의 경기
-      Manchester City가 Chelsea를 상대로 원정에서 2-0 완승을 거두며 리그 우승 의지를 과시했다. 홀란드의 선제골과 드 브라위너의 추가골로 무난하게 승리를 거두었으며, 수비진의 철벽 수비로 무실점 승리를 기록했다.
+      ## ⭐ 이번 주 베스트 경기
+      Manchester City가 적지에서 Chelsea를 2-0으로 잠재웠습니다. Erling Haaland가 23분 만에 선제골로 분위기를 깔아두자, 후반 Kevin De Bruyne이 한 골을 더 보태며 승부에 못을 박았습니다. 무실점까지 챙긴 깔끔한 원정이었습니다 ✅
 
       ## 📊 한눈에 보는 스코어보드
-      | 경기 | 스코어 | 한줄 요약 |
+      | 경기 | 스코어 | 한 줄 요약 |
       |------|--------|----------|
-      | Chelsea vs Manchester City | 0-2 | 원정에서도 막힘 없는 Manchester City의 위력 |
+      | Chelsea vs Manchester City | 0-2 | Haaland-De Bruyne 듀오는 어딜 가도 똑같습니다 |
       ---
 
-transfers_report:
+transfers_and_news_report:
   - input: |
+      ### Official Transfers
       Team: Manchester City
       Transfers:
       - Player: Kevin De Bruyne Type: Transfer Date: 2026-03-31
-    output: |
-      ## 🔁 이번 주 이적 시장
-      **Kevin De Bruyne, 2026년 3월 31일에 Real Madrid로의 이적 성사**
-    
-  - input: |
-      Team: Arsenal
-      Transfers:
-      - Player: Viktor Gyökeres Type: Transfer Date: 2025-07-26
-    output: |
-      ## 🔁 이번 주 이적 시장
-      **Viktor Gyökeres, 2025년 7월 26일에 Arsenal로의 이적 성사**
 
-news_rss_report:
-  - input: |
+      ### News & Rumors
       Team: Manchester City
       News Rumors:
       - Manchester City winning race with Manchester United to sign Elliot Anderson - Paper talk and football transfer gossip - Sky Sports (https://news.google.com/rss/articles/CBMi_wFBVV95cUxNbnRnMmcyQTRJX1JuTC1ncHBUa1NhYUszeUNPTmxZVElkd2xweThTamVsQm1OVC1HSFlFSFE4Z3V3ZFo0M1pwdEhfNUprc0FPZV9XdG9FMER4a0oxMGVycmRWaW9BaDROaWhKY2RCSTV3elQxTUduR0I0ZzhOQi1DYUtONU9LWFJWRjJyZldKMjlpVDJyeDhBNGJMaDZHR1FndzZib3hXWHRmNjdkTS1jUW5XVUhOdkFmaGN3eVFwbnJpTHFQX29ZSXJYMXNNTUNacE5UUjhvRVhuZ2pZS0E4NzZpSXJxZ2JTRmxHMkxVWHpVWjFrUUpEX3FKNjk4UjQ?oc=5)
       - Pep Guardiola formally asked by Man City if he plans to honour his contract - Paper talk and football transfer gossip - Sky Sports (https://news.google.com/rss/articles/CBMikwJBVV95cUxQNVFUbzB0Qk1rXzhvOWE5NkVwcS1LeWxoNlhBRkZCUFFDZFl5VVJDanVfOWtGMFczQWJTMWNhLU04SC1oSC1DUlRSSXY1Mk1nb3FFYWlqa0szOUV5ZVRfNVROYXNiWTRwRmF5WTl3bVphWHVUT0lQM1FxYi1OYWVzSVpvTW5EMWtmd09fMWd6SEl0Q29HZkh2Y1hUdjlqemFBNS1XdW9UR2NFMlpSRzNrbjB3cnBhXzBXc2E2bTMxa2ZISVRCTnoxWnIwLWhPVTNHSlFVcFhkVzJ2NVFkRURwdWM3T0lKck9hUXc5UVpjWUlFbjJ4QUtGRWVXTW9iaHUySU9Ld1FNTmhVTEkwaHB2UC1Zbw?oc=5)
-      - Man City - Transfer news, results, fixtures, video and audio - BBC (https://news.google.com/rss/articles/CBMiakFVX3lxTE1pS1I1RkJXVmtteDJxckpTXzV0YnlFcm9vM0l0YlJGQWtxTUZpYmM0RWg1cm5UYzMzREJJMzhQdFR5RVRYRHlmeU9WR1ExenkxVHVrdXRhZzRlY01MOVFKNUctckJWTUtYcVE?oc=5)
-      - Man City transfer rumours: Sandro Tonali - BBC (https://news.google.com/rss/articles/CBMiakFVX3lxTFBYbFNiang0bmhtYjBJdzktSUNwYVVKZU1sX3RMNkVtUm5MNnJGTVlhdTkwTVNpZlViemZWWDNXWEwxNUdPd05YWlNaUUZDck5pNGtna19GTkpNRVZjT0UxNEFMSld5a2I2MHc?oc=5)
-      - Man Utd - Transfer news, results, fixtures, video and audio - BBC (https://news.google.com/rss/articles/CBMibEFVX3lxTFBJa0h5bk50VEpCejY2S0FTQUNvY1oyOE1OSS1lS19kV3pKb0ZTa3k2RGxRRVdCZlNTS2gzSmItbHJZWDM5RmpxdzhnRmN1amNUT1ZwZUdiNWV0d2RvMk9GQ2JQVVZRUngxbXU0bA?oc=5)
     output: |
-      ## 📰 이번 주 뉴스 루머
-      - **Manchester City, Manchester United와 Elliot Anderson을 놓고 영입 경쟁 중** - Sky Sports
-      - **Manchester City, Pep Guardiola 감독에게 계약 연장 의사 공식 확인 요청** - Sky Sports
+      ## 🔁 이적 & 뉴스
+      **Kevin De Bruyne, 2026년 3월 31일자로 Real Madrid 이적이 공식 확정됐습니다.** Manchester City 중원의 한 축이 빠지는 셈이라, 다음 시즌 라인업 구성에 변화는 불가피해 보입니다.
+
+      ### 📰 이번 주 루머
+      - **Manchester City, Elliot Anderson 영입전에서 Manchester United와 정면충돌** — Newcastle의 미드필더 한 명을 두고 맨체스터의 두 클럽이 같은 표적을 노리고 있습니다. 가능성은 약 70% 정도로 보입니다. (Sky Sports)
+      - **Pep Guardiola 감독에게 계약 이행 의사 공식 확인 요청** — 감독 거취가 시즌 후반 가장 큰 변수로 떠올랐습니다. 본인 의중이 어디에 있는지가 곧 드러날 전망입니다. (Sky Sports)
   - input: |
+      ### Official Transfers
+      (none this week)
+
+      ### News & Rumors
       Team: Arsenal
       News Rumors:
       - Max Dowman: Arsenal teenager scores sensational England U19 goal with run from inside own half! - Sky Sports (https://news.google.com/rss/articles/CBMi4wFBVV95cUxNZ2RjVWMxZWNLYjlJdXljQmFlSzl3OGV2V0hXMWEzdk4wMVV1Q1J0MEhyYnFHWkpVNEZQVjhtOEJTZkJVaXhzR1R2ZWRPYjdlM0M4RWtaSGIyV3NUek13MkM2YkhzSldWT2pVYmpWcmQ2eTJ4V2tleXBSWWhqY0lZSTdJc3hnVkEwWjktaE5WRDhUNHk4V29CNG9wakQ5ck1XN0NPdC11RGtJY0k1NGFRdFVucmtUWmZnXzBINVNzdU9yeTZXZU5LTnZwQlduaWRfVk5iWlFndU10TVRTUFliUjR2NA?oc=5)
       - Arsenal injuries: Are the Gunners having an injury crisis after so many international withdrawals? - Sky Sports (https://news.google.com/rss/articles/CBMi5wFBVV95cUxPcTZSal9DN0dQMG0yRlo1QVR1ODlvdVpQWkhiSEtqUlo4TTBoSWFsT0l1NmJkaUlwWWVyZWZFQzFmNktfaGtpdEMwRlQyMXZCb1FMb2VJWC1vM1FBcEk5X1BLNERHb1JQSE5tSFdqMGJWRllmTzNpOTA2Yk9aRzVlNlFkWURVR1hkWFJSYWg3RTE5bV8ybXFrTHp0ZEJaaUdGaTBaVjZKS09HY1VoRnlkNUdoZFgyMjZXR0tqOUNEWmh3cS15WXF2Z1lCdFl6ckFlZmkzcWxnQVQ3cjZ1dERNOE5fRzVRTVk?oc=5)
-      - Football gossip - all of the latest transfer stories and speculation - BBC (https://news.google.com/rss/articles/CBMiVkFVX3lxTE5YVzRzd0lMYmhpTFE5aE9ZbnBTTlBHQkwzRE8zOVlENmw3TnVyeDU0RjluUzFBM2V6Q1BqZmtPV01qWE5ObmNoSXJnWnJLNDNPbFpHN093?oc=5)
       - Premier League free transfers: Harry Wilson, Bernardo Silva and Ibrahima Konate could leave this summer - Sky Sports (https://news.google.com/rss/articles/CBMi9gFBVV95cUxPMjUwTDFDX3N2SXRRRFNjRFJMWlJSOWw5d1FTZjd6c0t0YlhNbE11aFUtcnJzbFRZY0lHX2VTSVg0QW41a0RxclhLNWZYbDhyQ0J5S3NaSlUzazJCNk1RSkdIWG5xLUg0S3U0TGt3eXdtX1I4SlFzbmVCTmNoVWxFSnJ3dXN1X29WNXA3cUQ5eXpBUDhKZC1rcU54YmVzYjRLXzQ5WlVFZFBleVZjZlgyUzUzdm1BajluQUNtWVljMDlIWlFvTjlsVGZwNl9NMUJNaWVRMWRtVEp4QmlWaVp5bmt2Y2FvbFJaaHFaOG9DME1BTHJVWmc?oc=5)
-      - Football Games, Results, Scores, Transfers, News - Sky Sports (https://news.google.com/rss/articles/CBMiSkFVX3lxTFBvd21UQVFvOXNIZnJEZUIyeTJBWFVKSFNieGpMekpVdXFvOUFWRjlHdHpoNHVKck8xN1lMWW5IRkZ6cFBIZkQ3U3Rn?oc=5)
     output: |
-      ## 📰 이번 주 뉴스 루머
-      - **Max Dowman, 하프라인부터 단독 돌파로 England U19에서 환상적인 골 기록** - Sky Sports
-      - **Arsenal, 국가대표 차출 여파로 부상 위기 가능성 제기** - Sky Sports
+      ## 🔁 이적 & 뉴스
+      이번 주는 공식 이적 소식이 없었습니다. 대신 흥미로운 뉴스 몇 가지를 짚어봅니다.
+
+      ### 📰 이번 주 루머
+      - **Arsenal 유망주 Max Dowman, England U19에서 하프라인부터 단독 돌파 골 작렬** — Arsenal 팬이라면 이름을 외워두셔도 좋겠습니다. 이런 영상은 두고두고 회자됩니다 🎯 (Sky Sports)
+      - **국가대표 차출 여파로 부상 위기설 제기** — 일주일 사이 부상 명단이 빠르게 늘면서 라인업 운영에 빨간불이 켜졌습니다. 다음 경기 선발 윤곽이 평소보다 늦게 잡힐 가능성이 큽니다. (Sky Sports)
+      - **Harry Wilson, Bernardo Silva, Ibrahima Konate 등 여름 자유계약 후보군 거론** — 시즌 막판 계약 협상 분위기에 따라 명단은 더 늘어날 가능성이 있습니다. (Sky Sports)
