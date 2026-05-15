@@ -31,7 +31,7 @@ matches_report:
     - Based on the data above, write the match results section by following these steps.
       1. **Main Headline:** One short, click-worthy but accurate headline capturing the week's most dramatic result. Light puns welcome; cliché PR lines are not.
       - **The headline must tease, not restate.** It should NOT repeat the same fact that appears in the first sentence of the Match of the Week section. If both say "Arsenal이 Liverpool을 3-1로 이겼습니다", the reader gets the same line twice in the first 4 seconds — it reads as filler.
-      - Focus the headline on the *narrative angle*: key scorer(s), turning point, location color, or a setup-question. The body sentence carries the score.
+      - Focus the headline on the *narrative angle* key scorer(s), turning point, location color, or a setup-question. The body sentence carries the score.
       2. **Match of the Week:** Pick the most interesting game and tell its *story* in ~150 Korean characters. Focus on the turning point (comeback, rivalry, a star moment), not just the scoreline.
       3. **One-Line Scoreboard:** A Markdown table summarizing key results.
       - **Columns:** [경기] | [스코어] | [한 줄 요약]
@@ -67,7 +67,7 @@ matches_report:
 transfers_and_news_report:
   Input Data:
     - This week's official transfers AND news/rumors are provided together.
-    - The input is split into two labeled blocks: "### Official Transfers" (from FotMob — structured Player/Type/Date) and "### News & Rumors" (from Google News RSS — headlines + URLs).
+    - The input is split into two labeled blocks "### Official Transfers" (from FotMob — structured Player/Type/Date) and "### News & Rumors" (from Google News RSS — headlines + URLs).
     - Either block may be empty, especially mid-season when no transfer window is open.
   Task:
     - Combine both data sources into ONE engaging section for Korean light fans.
@@ -75,7 +75,7 @@ transfers_and_news_report:
         - Explain WHY it matters in plain language (e.g., "이 선수가 합류하면 후방 빌드업이 한층 안정됩니다" — avoid abstract phrases like "수비 안정성이 향상됩니다").
         - Add brief background on the player so new fans know who they are.
       2. **Rumor Mill (if any):** Cover the 2-3 most exciting big-name rumors.
-        - Rate each rumor's likelihood: "0% (사실상 불가능)" → "99% (사실상 확정)".
+        - Rate each rumor's likelihood "0% (사실상 불가능)" → "99% (사실상 확정)".
         - One line on WHY the rumor is hot right now.
       3. **Drama Angle:** Highlight the juiciest human element — ego, loyalty, money move, revenge transfer. Make fans feel it, not just read it.
       4. **Empty handling:** If the Official Transfers block is empty (common mid-season), acknowledge it briefly in one short sentence and move straight to rumors. Do not pad. If both blocks are empty, output nothing — the caller will handle the empty case.
