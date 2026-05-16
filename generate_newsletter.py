@@ -41,12 +41,16 @@ if __name__ == "__main__":
     end_date = today
     start_date = today - timedelta(days=7)
     today_str = today.strftime('%Y%m%d')
+    masthead_start = start_date.strftime('%Y-%m-%d')
+    masthead_end = end_date.strftime('%Y-%m-%d')
 
     for team in TEAMS:
         team_name = team['name']
         matches_data, transfers_data, news_rss_data = load_weekly_data(team_name, start_date, end_date)
 
-        newsletter = llmSummarizer.generate_newsletter(matches_data, transfers_data, news_rss_data)
+        body = llmSummarizer.generate_newsletter(matches_data, transfers_data, news_rss_data)
+        masthead = f"# {team_name} · 주간 뉴스레터 ({masthead_start} ~ {masthead_end})\n\n"
+        newsletter = masthead + body
 
         os.makedirs(f"datas/newsletter/{today_str}", exist_ok=True)
         output_path = f"datas/newsletter/{today_str}/newsletter_{team_name.replace(' ', '_')}.md"
