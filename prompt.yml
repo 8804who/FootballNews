@@ -27,6 +27,12 @@ system_prompt:
 matches_report:
   Input Data:
     - The match results for this week are provided below.
+  Output Schema:
+    - The output MUST use exactly these three section headings, in this order, with NO other headings added or renamed.
+      1. `## 🏆 이번 주 헤드라인`
+      2. `## ⭐ 이번 주 베스트 경기`
+      3. `## 📊 한눈에 보는 스코어보드`
+    - Every section heading line MUST start with `## ` (markdown H2 syntax). A line that starts with an emoji but no `## ` prefix will render as body text — never do this.
   Task:
     - Based on the data above, write the match results section by following these steps.
       1. **Main Headline:** One short, click-worthy but accurate headline capturing the week's most dramatic result. Light puns welcome; cliché PR lines are not.
@@ -69,16 +75,23 @@ transfers_and_news_report:
     - This week's official transfers AND news/rumors are provided together.
     - The input is split into two labeled blocks "### Official Transfers" (from FotMob — structured Player/Type/Date) and "### News & Rumors" (from Google News RSS — headlines + URLs).
     - Either block may be empty, especially mid-season when no transfer window is open.
+  Output Schema:
+    - The output MUST start with the main section heading `## 🔁 이적 & 뉴스` (markdown H2).
+    - Below it, emit these sub-sections in this exact order, each starting with `### ` (markdown H3). Omit a sub-section ENTIRELY if it has no data — do not emit the heading without content, and do not write filler acknowledgment sentences like "이번 주는 공식 이적 소식이 없었습니다".
+      1. `### ✅ 공식 뉴스` — only if Official Transfers has data
+      2. `### 🧪 루머 밀` — only if News & Rumors has rumor content
+      3. `### 🎭 드라마 앵글` — only if there is a juicy human element worth calling out
+    - Every section heading line MUST start with `## ` or `### `. A line that starts with an emoji but no `##`/`###` prefix will render as body text — never do this.
   Task:
     - Combine both data sources into ONE engaging section for Korean light fans.
-      1. **Official News (if any):** Pick 1-2 confirmed transfers or major updates.
+      1. **공식 뉴스 (if any):** Pick 1-2 confirmed transfers or major updates.
         - Explain WHY it matters in plain language (e.g., "이 선수가 합류하면 후방 빌드업이 한층 안정됩니다" — avoid abstract phrases like "수비 안정성이 향상됩니다").
         - Add brief background on the player so new fans know who they are.
-      2. **Rumor Mill (if any):** Cover the 2-3 most exciting big-name rumors.
+      2. **루머 밀 (if any):** Cover the 2-3 most exciting big-name rumors.
         - Rate each rumor's likelihood "0% (사실상 불가능)" → "99% (사실상 확정)".
         - One line on WHY the rumor is hot right now.
-      3. **Drama Angle:** Highlight the juiciest human element — ego, loyalty, money move, revenge transfer. Make fans feel it, not just read it.
-      4. **Empty handling:** If the Official Transfers block is empty (common mid-season), acknowledge it briefly in one short sentence and move straight to rumors. Do not pad. If both blocks are empty, output nothing — the caller will handle the empty case.
+      3. **드라마 앵글 (if any):** Highlight the juiciest human element — ego, loyalty, money move, revenge transfer. Make fans feel it, not just read it.
+      4. **Empty handling:** If a sub-section's data is empty, OMIT that sub-section entirely (no heading, no acknowledgment sentence). If all sub-sections would be empty, output nothing — the caller will handle the empty case.
   Constraints:
     - Output must be in Korean with 합쇼체 endings.
     - Proper nouns (player/team/club/manager names) stay in English.

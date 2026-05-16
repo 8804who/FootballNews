@@ -92,10 +92,18 @@ class LLMSummarizer:
         matches_report = self.generate_matches_report(matches_data)
         transfers_and_news_report = self.generate_transfers_and_news_report(transfers_data, news_rss_data)
 
-        matches_report_content = matches_report.content if matches_report else "한 주간 진행된 경기가 없었네요."
-        transfers_and_news_content = transfers_and_news_report.content if transfers_and_news_report else "한 주간 아무런 이적 및 뉴스 소식이 없었네요."
+        sections = []
+        if matches_report:
+            sections.append(matches_report.content.strip())
+        if transfers_and_news_report:
+            sections.append(transfers_and_news_report.content.strip())
 
-        return "\n".join([matches_report_content, transfers_and_news_content])
+        if not sections:
+            # Both data sources were empty this week. Wrap the fallback in a section
+            # so it does not render as an orphan line above the masthead.
+            return "## 🌙 이번 주 휴식\n\n이번 주는 경기와 이적·뉴스 소식이 모두 조용했습니다. 다음 주에 다시 만나요."
+
+        return "\n\n".join(sections)
         
 
 llmSummarizer = LLMSummarizer()
