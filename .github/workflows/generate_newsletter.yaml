@@ -49,7 +49,20 @@ jobs:
         run: |
           python generate_newsletter.py
 
+      - name: Evaluate newsletter
+        continue-on-error: true
+        run: |
+          python evaluate/evaluate_main.py \
+            --date $(date +%Y%m%d) \
+            --output datas/evaluation/$(date +%Y%m%d)/report.md
+
       - name: Upload newsletter to GCS
         run: |
           gcloud storage cp -r datas/newsletter/$(date +%Y%m%d) \
             gs://my-football-news/football-news/datas/newsletter/$(date +%Y%m%d)
+
+      - name: Upload evaluation report to GCS
+        continue-on-error: true
+        run: |
+          gcloud storage cp -r datas/evaluation/$(date +%Y%m%d) \
+            gs://my-football-news/football-news/datas/evaluation/$(date +%Y%m%d)
