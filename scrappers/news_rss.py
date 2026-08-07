@@ -3,7 +3,24 @@ import feedparser
 import os
 from datetime import datetime
 
-from config import TEAMS
+from config import TEAMS, FPL_TEAMS
+
+
+def _team_aliases(team_name):
+    """Name variants a headline might use for this team (e.g. 'Man Utd', 'Spurs').
+
+    Google News RSS ranks loosely-relevant results even for a quoted team
+    query — other-team-only stories and generic league pages routinely rank
+    highly for a "{team} transfer" search. Fetched entries are filtered
+    against these aliases so only headlines that actually mention the team
+    are kept.
+    """
+    aliases = {team_name}
+    for t in FPL_TEAMS:
+        if t["name"] == team_name and t.get("short_name"):
+            aliases.add(t["short_name"])
+    return aliases
+
 
 class NewsRSS:
     def __init__(self):
@@ -17,17 +34,22 @@ class NewsRSS:
             query = f'"{team_name}" transfer (site:skysports.com OR site:bbc.co.uk OR site:theathletic.com)'
             encoded_query = requests.utils.quote(query)
             rss_url = f"https://news.google.com/rss/search?q={encoded_query}&hl=en-GB&gl=GB&ceid=GB:en"
-            
+
             feed = feedparser.parse(rss_url)
-            
+
+            aliases = [a.lower() for a in _team_aliases(team_name)]
             news_items = []
-            for entry in feed.entries[:5]:  # 상위 5개만 추출
+            for entry in feed.entries:
+                if not any(alias in entry.title.lower() for alias in aliases):
+                    continue  # headline doesn't actually mention this team
                 news_items.append({
                     "title": entry.title,
                     "link": entry.link,
                     "published": entry.published
                 })
-                
+                if len(news_items) == 5:  # 상위 5개만 추출
+                    break
+
             return news_items
 
     def get_news_rss_markdown(self, news_items, team_name):
