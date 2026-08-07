@@ -22,6 +22,7 @@ Usage
 """
 
 import argparse
+import json
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -307,6 +308,46 @@ def render_report_markdown(results: List[Dict]) -> str:
     return "\n".join(lines) + "\n"
 
 
+# ─────────────────────────── json summary ───────────────────────────────────
+
+def render_report_json(results: List[Dict]) -> Dict:
+    """Compact machine-readable summary for downstream consumers (the dashboard).
+
+    Distinct from render_report_markdown: this carries only the aggregate
+    numbers a chart/scorecard needs, not per-newsletter detail.
+    """
+    if not results:
+        return {"date": None, "n": 0, "overall_score": None, "metrics": {}}
+
+    def avg_field(key: str, field: str) -> Optional[float]:
+        vals = [r[key][field] for r in results if r[key].get(field) is not None]
+        return sum(vals) / len(vals) if vals else None
+
+    def pct(v: Optional[float]) -> Optional[float]:
+        return round(v * 100, 1) if v is not None else None
+
+    n = len(results)
+    drift_n = sum(1 for r in results if r["llm_drift"]["detected"])
+    overall_vals = [r["overall"] for r in results if r["overall"] is not None]
+    overall_avg = sum(overall_vals) / len(overall_vals) if overall_vals else None
+    hallucination_rate = avg_field("hallucination", "rate")
+
+    dates = sorted(set(r["date"] for r in results))
+
+    return {
+        "date": dates[-1] if dates else None,
+        "n": n,
+        "overall_score": pct(overall_avg),
+        "metrics": {
+            "score_accuracy": pct(avg_field("score_accuracy", "score")),
+            "section_completeness": pct(avg_field("section_completeness", "score")),
+            "no_hallucination": pct(1 - hallucination_rate) if hallucination_rate is not None else None,
+            "no_drift": pct(1 - (drift_n / n)) if n else None,
+            "language_compliance": pct(avg_field("language_compliance", "ratio")),
+        },
+    }
+
+
 # ─────────────────────────── entry point ────────────────────────────────────
 
 def main() -> None:
@@ -318,6 +359,10 @@ def main() -> None:
     parser.add_argument(
         "--output",
         help="Write the report as markdown to this file path, in addition to printing it",
+    )
+    parser.add_argument(
+        "--json-output",
+        help="Write the aggregate summary as JSON to this file path (for the dashboard)",
     )
     args = parser.parse_args()
 
@@ -346,6 +391,12 @@ def main() -> None:
         out_path.parent.mkdir(parents=True, exist_ok=True)
         out_path.write_text(render_report_markdown(results), encoding="utf-8")
         print(f"\nMarkdown report written to: {out_path}")
+
+    if args.json_output:
+        json_path = Path(args.json_output)
+        json_path.parent.mkdir(parents=True, exist_ok=True)
+        json_path.write_text(json.dumps(render_report_json(results), indent=2), encoding="utf-8")
+        print(f"JSON summary written to: {json_path}")
 
 
 if __name__ == "__main__":
