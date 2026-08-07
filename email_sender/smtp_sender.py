@@ -10,27 +10,33 @@ from email_sender.email_sender import EmailSender
 
 
 EMAIL_STYLES = """
-  body { margin: 0; padding: 0; background: #f4f4f5; }
-  .wrap { max-width: 640px; margin: 0 auto; padding: 28px 24px; background: #ffffff;
+  body { margin: 0; padding: 0; background: #d8d2c4; }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 28px 24px; background: #f4f0e6;
           font-family: -apple-system, "Apple SD Gothic Neo", "Malgun Gothic",
           "Helvetica Neue", Helvetica, Arial, sans-serif;
-          line-height: 1.65; color: #1f2937; font-size: 16px; }
-  .wrap h1 { font-size: 22px; line-height: 1.3; margin: 0 0 24px;
-             padding-bottom: 14px; border-bottom: 2px solid #111827; color: #111827; }
-  .wrap h2 { font-size: 18px; line-height: 1.35; margin: 32px 0 12px; color: #111827; }
-  .wrap h3 { font-size: 16px; line-height: 1.4; margin: 20px 0 8px; color: #111827; }
+          line-height: 1.7; color: #2b2a26; font-size: 16px; }
+  .wrap h1 { margin: -28px -24px 24px; padding: 22px 24px 18px; font-size: 22px;
+             line-height: 1.3; font-weight: 700; background: #14204d; color: #f4f0e6;
+             border-bottom: 6px solid #c8a24a; }
+  .wrap h2 { display: inline-block; font-size: 13px; line-height: 1.4; margin: 32px 0 14px;
+             padding-bottom: 8px; border-bottom: 2px solid #c8a24a; color: #14204d;
+             text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
+  .wrap h2 + p strong { display: block; font-size: 20px; line-height: 1.4; color: #14204d; }
+  .wrap h3 { font-size: 16px; line-height: 1.4; margin: 20px 0 8px; color: #14204d; }
   .wrap p, .wrap li { font-size: 16px; }
   .wrap p { margin: 0 0 14px; }
   .wrap ul, .wrap ol { margin: 0 0 14px; padding-left: 22px; }
   .wrap li { margin-bottom: 6px; }
-  .wrap strong { color: #111827; }
-  .wrap a { color: #1d4ed8; text-decoration: underline; }
-  .wrap hr { border: 0; border-top: 1px solid #e5e7eb; margin: 24px 0; }
-  .wrap table { border-collapse: collapse; width: 100%; margin: 0 0 18px;
+  .wrap strong { color: #14204d; }
+  .wrap a { color: #14204d; text-decoration: underline; }
+  .wrap hr { border: 0; border-top: 1px dotted #b8ac8e; margin: 28px 0; }
+  .wrap table { border-collapse: collapse; width: 100%; margin: 4px 0 20px;
                 font-size: 15px; }
-  .wrap th, .wrap td { border: 1px solid #e5e7eb; padding: 8px 10px;
-                       text-align: left; vertical-align: top; }
-  .wrap th { background: #f9fafb; font-weight: 600; }
+  .wrap th { background: #14204d; color: #c8a24a; font-weight: 700; font-size: 12px;
+             letter-spacing: 0.5px; text-transform: uppercase; padding: 10px 12px;
+             text-align: left; white-space: nowrap; }
+  .wrap td { border-bottom: 1px solid #d8d2c4; padding: 12px; text-align: left;
+             vertical-align: top; }
 """
 
 
