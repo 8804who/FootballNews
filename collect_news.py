@@ -24,6 +24,7 @@ def get_fotmob_data(team, start_date, end_date):
             f.write(matches_output if matches_output else "")
         with open(f"datas/fotmob/{datetime.now().strftime('%Y%m%d')}/team_daily_report_{team_name}_transfers.md", "w") as f:
             f.write(transfers_output if transfers_output else "")
+        print(f"[{team['name']}] fotmob: wrote matches + transfers report")
 
 def get_news_rss_data(team):
     news_items = news_rss.get_transfer_news_rss(team['name'])
@@ -31,6 +32,7 @@ def get_news_rss_data(team):
     os.makedirs(f"datas/news_rss/{datetime.now().strftime('%Y%m%d')}", exist_ok=True)
     with open(f"datas/news_rss/{datetime.now().strftime('%Y%m%d')}/team_daily_report_{team['name'].replace(" ", "_")}.md", "w") as f:
         f.write(markdown_output if markdown_output else "There is no transfer news this week.")
+    print(f"[{team['name']}] news_rss: wrote {len(news_items)} item(s)")
 
 
 

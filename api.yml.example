@@ -1,0 +1,16 @@
+API_KEY:
+  OPENAI: sk-...                     # OpenAI API key (used by summarizers/llm.py)
+
+URL:
+  FPL: https://fantasy.premierleague.com/api/   # FPL public API base URL (standalone scrappers/fpl.py only)
+  fbref: https://fbref.com/                      # FBref base URL (standalone scrappers/fbref.py only)
+
+GOOGLE_CLOUD:
+  EMAIL: your-service-account@project.iam.gserviceaccount.com  # used to read the subscriber Google Sheet
+  SPREADSHEET_URL: https://docs.google.com/spreadsheets/d/...  # the "신청자 목록" (signup list) sheet
+
+SMTP:
+  SERVER: smtp.gmail.com
+  PORT: 587
+  USERNAME: you@gmail.com            # Gmail address newsletters are sent from
+  PASSWORD: your-16-char-app-password  # Gmail App Password, not your account password
