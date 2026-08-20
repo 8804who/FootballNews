@@ -4,12 +4,10 @@
 
 Collects football club news, generates a newsletter, and sends it to subscribers weekly.
 
-**Dashboard:** https://8804who.github.io/FootballNews/
-
 ## Workflow
 
 1. **Collect** — Collect match reports and transfer news for configured Premier League clubs daily, from FotMob and Google News RSS.
-2. **Generate** — Generate a newsletter per club weekly, based on the last 7 days of collected data.
+2. **Generate** — Generate a newsletter per club weekly, based on the last 7 days of collected data plus the generation day itself (which covers Sunday-night UK matches, i.e. Monday dawn in Korea).
 3. **Evaluate** — Evaluate the generated newsletter against source data.
 4. **Send** — Send the newsletter to subscribers.
 5. **Publish** — Generate and publish a dashboard for subscriber counts, workflow status, and evaluation score history.
@@ -25,7 +23,10 @@ Collects football club news, generates a newsletter, and sends it to subscribers
      → uploads to gs://my-football-news/football-news/datas/{fotmob,news_rss}/YYYYMMDD/
 
 2) generate_newsletter.py  (weekly, Mon 01:00 UTC)
-     downloads the last 7 days of fotmob + news_rss data from GCS
+     downloads the last 7 days of fotmob + news_rss data from GCS, plus the
+     generation day itself (collect_news.py names its output folder by the day
+     it runs, not the match date, so Monday's run — which also sweeps up
+     Sunday-night UK matches, i.e. Monday dawn KST — lands in the Monday folder)
      └─ summarizers/llm.py (LLMSummarizer)
           → LangChain FewShotPromptTemplate + ChatOpenAI
           → generates a newsletter per team based on prompt.yml (system/section
