@@ -1,10 +1,15 @@
 import os
+import re
 
 from google.oauth2.service_account import Credentials
 import google.auth
 import gspread
 
 from config import GOOGLE_CLOUD, TEAMS
+
+
+def _normalize_team_name(name: str) -> str:
+    return re.sub(r"\s+", "", name).strip().lower()
 
 
 class GoogleSheetParser:
@@ -29,8 +34,9 @@ class GoogleSheetParser:
     def get_team_subscribers(self, team_name: str):
         subscribers = []
         records = self.get_all_records()
+        target = _normalize_team_name(team_name)
         for record in records:
-            if record["어떤 팀의 소식을 받아보고 싶나요?"] == team_name:
+            if _normalize_team_name(record["어떤 팀의 소식을 받아보고 싶나요?"]) == target:
                 subscribers.append(record["뉴스 레터를 수신할 이메일을 입력해주세요."])
         return subscribers
 
