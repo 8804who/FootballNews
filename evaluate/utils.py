@@ -132,17 +132,21 @@ def load_fotmob_for_team(
     token: str,
     newsletter_date: datetime,
 ) -> Tuple[List[Tuple[str, str, int, int]], Set[str]]:
-    """Aggregate fotmob matches + player names from the 7 days before the newsletter.
+    """Aggregate fotmob matches + player names from the 8 days up to and
+    including the newsletter date.
 
-    Mirrors generate_newsletter.py's load_weekly_data() window exactly: 7 days
-    ending the day *before* the newsletter date (the LLM never sees the
-    newsletter's own generation day). Matches are deduplicated because each
-    day's snapshot file is itself a rolling report and can repeat matches
-    already seen on a previous day within the window.
+    Mirrors generate_newsletter.py's load_weekly_data() window exactly: 7
+    days before the newsletter date *plus* the newsletter's own generation
+    day. The generation day is included because collect_news.py names its
+    output folder by the day it runs, not the match date — so a Sunday-night
+    UK match (Monday dawn in Korea) lands in that same-day folder, and the
+    LLM does see it. Matches are deduplicated because each day's snapshot
+    file is itself a rolling report and can repeat matches already seen on a
+    previous day within the window.
     """
     matches: Set[Tuple[str, str, int, int]] = set()
     players: Set[str] = set()
-    for delta in range(1, 8):
+    for delta in range(0, 8):
         d_str = (newsletter_date - timedelta(days=delta)).strftime("%Y%m%d")
         f = FOTMOB_ROOT / d_str / f"team_daily_report_{token}_matches.md"
         if f.exists():

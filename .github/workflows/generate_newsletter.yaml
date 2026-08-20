@@ -35,7 +35,10 @@ jobs:
       - name: Download past 7 days of football data from GCS
         run: |
           mkdir -p datas/fotmob datas/news_rss
-          for i in $(seq 1 7); do
+          # i=0 (today) is included: collect_news.py's Monday-morning run names its
+          # output folder by the day it runs, not the match date, so it's where
+          # Sunday's late UK kick-off (Monday dawn KST) actually lands.
+          for i in $(seq 0 7); do
             DATE=$(date -d "-${i} days" +%Y%m%d)
             gcloud storage cp -r \
               gs://my-football-news/football-news/datas/fotmob/${DATE} \
