@@ -42,7 +42,10 @@ if __name__ == "__main__":
 
         subject = f"[FootballNews] {team_name} 주간 뉴스레터 ({start_date_str}~{today_str})"
         for email in subscribers:
-            smtp_sender.send_email(email, subject, newsletter)
-            print(f"[{team_name}] Sent to {email}")
+            try:
+                smtp_sender.send_email(email, subject, newsletter)
+                print(f"[{team_name}] Sent to {email}")
+            except Exception as e:
+                print(f"Email send failed|{email}|{team_name}\nError:{e}")
 
         print(f"[{team_name}] Done — {len(subscribers)} subscriber(s) notified.")
