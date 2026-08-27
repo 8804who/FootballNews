@@ -142,7 +142,7 @@ def download_latest_week(client) -> str | None:
         blob.download_to_filename(str(local))
 
     base = datetime.strptime(latest, "%Y%m%d")
-    for i in range(1, 8):
+    for i in range(0, 8):
         d = (base - timedelta(days=i)).strftime("%Y%m%d")
         for blob in bucket.list_blobs(prefix=f"{GCS_DATA_PREFIX}/fotmob/{d}/"):
             local = Path("datas/fotmob") / d / blob.name.split("/")[-1]

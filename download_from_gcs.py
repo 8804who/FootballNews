@@ -43,7 +43,7 @@ def main():
         "--days",
         type=int,
         default=7,
-        help="Number of past days to download (default: 7)",
+        help="Number of past days to download in addition to today (default: 7)",
     )
     parser.add_argument(
         "--date",
@@ -67,9 +67,13 @@ def main():
         dates = [args.date]
     else:
         today = datetime.now(timezone.utc)
+        # i=0 (today) is included: generate_newsletter.py's load_weekly_data()
+        # and evaluate/utils.py's load_fotmob_for_team() both read today's own
+        # folder (collect_news.py names output by the day it runs, not the
+        # match date), so a local run needs it downloaded too.
         dates = [
             (today - timedelta(days=i)).strftime("%Y%m%d")
-            for i in range(1, args.days + 1)
+            for i in range(0, args.days + 1)
         ]
 
     client = get_client()
