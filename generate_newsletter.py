@@ -9,6 +9,7 @@ def load_weekly_data(team_name: str, start_date: datetime, end_date: datetime):
     matches_data = ""
     transfers_data = ""
     news_rss_data = ""
+    seen_news = set()
 
     team_name_normalized = team_name.replace(" ", "_")
     current = start_date
@@ -29,7 +30,12 @@ def load_weekly_data(team_name: str, start_date: datetime, end_date: datetime):
 
         if os.path.exists(news_rss_path):
             with open(news_rss_path, "r") as f:
-                news_rss_data += f.read() + "\n"
+                for line in f.read().splitlines():
+                    # the same headline is re-collected on consecutive days
+                    if line.startswith("- ") and line in seen_news:
+                        continue
+                    seen_news.add(line)
+                    news_rss_data += line + "\n"
 
         current += timedelta(days=1)
 

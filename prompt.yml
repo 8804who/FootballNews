@@ -93,6 +93,8 @@ transfers_and_news_report:
       3. **드라마 앵글 (if any):** Highlight the juiciest human element — ego, loyalty, money move, revenge transfer. Make fans feel it, not just read it.
       4. **Empty handling:** If a sub-section's data is empty, OMIT that sub-section entirely (no heading, no acknowledgment sentence). If all sub-sections would be empty, output nothing — the caller will handle the empty case.
   Constraints:
+    - "**Use ONLY facts found in the final Input block.** The few-shot examples are fictional and show FORMAT ONLY — never copy their players, clubs, headlines, or transfer details into the output."
+    - Every item you write about must trace back to a specific line in the final Input. If a line is not about the newsletter's team, skip it.
     - Output must be in Korean with 합쇼체 endings.
     - Proper nouns (player/team/club/manager names) stay in English.
     - Assume readers are casual fans — never skip context on who a player is.

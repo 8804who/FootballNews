@@ -1,7 +1,7 @@
 import requests
 import feedparser
 import os
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 from config import TEAMS, FPL_TEAMS
 
@@ -20,6 +20,18 @@ def _team_aliases(team_name):
         if t["name"] == team_name and t.get("short_name"):
             aliases.add(t["short_name"])
     return aliases
+
+
+MAX_AGE_DAYS = 7
+
+
+def _is_recent(entry):
+    """True if the entry was published within MAX_AGE_DAYS (unparseable dates are dropped)."""
+    parsed = entry.get("published_parsed")
+    if not parsed:
+        return False
+    published = datetime(*parsed[:6], tzinfo=timezone.utc)
+    return datetime.now(timezone.utc) - published <= timedelta(days=MAX_AGE_DAYS)
 
 
 class NewsRSS:
@@ -42,6 +54,8 @@ class NewsRSS:
             for entry in feed.entries:
                 if not any(alias in entry.title.lower() for alias in aliases):
                     continue  # headline doesn't actually mention this team
+                if not _is_recent(entry):
+                    continue  # stale story
                 news_items.append({
                     "title": entry.title,
                     "link": entry.link,

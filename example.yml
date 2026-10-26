@@ -43,39 +43,38 @@ matches_report:
       ---
 
 transfers_and_news_report:
+  # NOTE: every player name and headline below is FICTIONAL and for format only.
+  # Never reuse them in a real newsletter.
   - input: |
       ### Official Transfers
-      Team: Manchester City
+      Team: Example FC
       Transfers:
-      - Player: Kevin De Bruyne Type: Transfer Date: 2026-03-31
+      - Player: Alex Sample Type: Transfer Date: 2000-01-01
 
       ### News & Rumors
-      Team: Manchester City
+      Team: Example FC
       News Rumors:
-      - Manchester City winning race with Manchester United to sign Elliot Anderson - Paper talk and football transfer gossip - Sky Sports (https://news.google.com/rss/articles/CBMi_wFBVV95cUxNbnRnMmcyQTRJX1JuTC1ncHBUa1NhYUszeUNPTmxZVElkd2xweThTamVsQm1OVC1HSFlFSFE4Z3V3ZFo0M1pwdEhfNUprc0FPZV9XdG9FMER4a0oxMGVycmRWaW9BaDROaWhKY2RCSTV3elQxTUduR0I0ZzhOQi1DYUtONU9LWFJWRjJyZldKMjlpVDJyeDhBNGJMaDZHR1FndzZib3hXWHRmNjdkTS1jUW5XVUhOdkFmaGN3eVFwbnJpTHFQX29ZSXJYMXNNTUNacE5UUjhvRVhuZ2pZS0E4NzZpSXJxZ2JTRmxHMkxVWHpVWjFrUUpEX3FKNjk4UjQ?oc=5)
-      - Pep Guardiola formally asked by Man City if he plans to honour his contract - Paper talk and football transfer gossip - Sky Sports (https://news.google.com/rss/articles/CBMikwJBVV95cUxQNVFUbzB0Qk1rXzhvOWE5NkVwcS1LeWxoNlhBRkZCUFFDZFl5VVJDanVfOWtGMFczQWJTMWNhLU04SC1oSC1DUlRSSXY1Mk1nb3FFYWlqa0szOUV5ZVRfNVROYXNiWTRwRmF5WTl3bVphWHVUT0lQM1FxYi1OYWVzSVpvTW5EMWtmd09fMWd6SEl0Q29HZkh2Y1hUdjlqemFBNS1XdW9UR2NFMlpSRzNrbjB3cnBhXzBXc2E2bTMxa2ZISVRCTnoxWnIwLWhPVTNHSlFVcFhkVzJ2NVFkRURwdWM3T0lKck9hUXc5UVpjWUlFbjJ4QUtGRWVXTW9iaHUySU9Ld1FNTmhVTEkwaHB2UC1Zbw?oc=5)
+      - Example FC in race with Demo United to sign Jordan Placeholder - Sky Sports (https://example.com/rss/1)
+      - Example FC manager Sam Fictional asked whether he will honour his contract - Sky Sports (https://example.com/rss/2)
     output: |
       ## 🔁 이적 & 뉴스
-      **Kevin De Bruyne, 2026년 3월 31일자로 Real Madrid 이적이 공식 확정됐습니다.** Manchester City 중원의 한 축이 빠지는 셈이라, 다음 시즌 라인업 구성에 변화는 불가피해 보입니다.
+      ### ✅ 공식 뉴스
+      **Alex Sample, Example FC를 떠나는 이적이 공식 확정됐습니다.** 중원의 한 축이 빠지는 셈이라, 라인업 구성에 변화는 불가피해 보입니다.
 
-      ### 📰 이번 주 루머
-      - **Manchester City, Elliot Anderson 영입전에서 Manchester United와 정면충돌** — Newcastle의 미드필더 한 명을 두고 맨체스터의 두 클럽이 같은 표적을 노리고 있습니다. 가능성은 약 70% 정도로 보입니다. (Sky Sports)
-      - **Pep Guardiola 감독에게 계약 이행 의사 공식 확인 요청** — 감독 거취가 시즌 후반 가장 큰 변수로 떠올랐습니다. 본인 의중이 어디에 있는지가 곧 드러날 전망입니다. (Sky Sports)
+      ### 🧪 루머 밀
+      - **Example FC, Jordan Placeholder 영입전에서 Demo United와 정면충돌** — 같은 선수를 두고 두 클럽이 맞붙는 모양새입니다. 가능성은 약 70% 정도로 보입니다. (Sky Sports)
+      - **Sam Fictional 감독에게 계약 이행 의사 공식 확인 요청** — 감독 거취가 시즌 후반 가장 큰 변수로 떠올랐습니다. (Sky Sports)
   - input: |
       ### Official Transfers
       (none this week)
 
       ### News & Rumors
-      Team: Arsenal
+      Team: Sample Town
       News Rumors:
-      - Max Dowman: Arsenal teenager scores sensational England U19 goal with run from inside own half! - Sky Sports (https://news.google.com/rss/articles/CBMi4wFBVV95cUxNZ2RjVWMxZWNLYjlJdXljQmFlSzl3OGV2V0hXMWEzdk4wMVV1Q1J0MEhyYnFHWkpVNEZQVjhtOEJTZkJVaXhzR1R2ZWRPYjdlM0M4RWtaSGIyV3NUek13MkM2YkhzSldWT2pVYmpWcmQ2eTJ4V2tleXBSWWhqY0lZSTdJc3hnVkEwWjktaE5WRDhUNHk4V29CNG9wakQ5ck1XN0NPdC11RGtJY0k1NGFRdFVucmtUWmZnXzBINVNzdU9yeTZXZU5LTnZwQlduaWRfVk5iWlFndU10TVRTUFliUjR2NA?oc=5)
-      - Arsenal injuries: Are the Gunners having an injury crisis after so many international withdrawals? - Sky Sports (https://news.google.com/rss/articles/CBMi5wFBVV95cUxPcTZSal9DN0dQMG0yRlo1QVR1ODlvdVpQWkhiSEtqUlo4TTBoSWFsT0l1NmJkaUlwWWVyZWZFQzFmNktfaGtpdEMwRlQyMXZCb1FMb2VJWC1vM1FBcEk5X1BLNERHb1JQSE5tSFdqMGJWRllmTzNpOTA2Yk9aRzVlNlFkWURVR1hkWFJSYWg3RTE5bV8ybXFrTHp0ZEJaaUdGaTBaVjZKS09HY1VoRnlkNUdoZFgyMjZXR0tqOUNEWmh3cS15WXF2Z1lCdFl6ckFlZmkzcWxnQVQ3cjZ1dERNOE5fRzVRTVk?oc=5)
-      - Premier League free transfers: Harry Wilson, Bernardo Silva and Ibrahima Konate could leave this summer - Sky Sports (https://news.google.com/rss/articles/CBMi9gFBVV95cUxPMjUwTDFDX3N2SXRRRFNjRFJMWlJSOWw5d1FTZjd6c0t0YlhNbE11aFUtcnJzbFRZY0lHX2VTSVg0QW41a0RxclhLNWZYbDhyQ0J5S3NaSlUzazJCNk1RSkdIWG5xLUg0S3U0TGt3eXdtX1I4SlFzbmVCTmNoVWxFSnJ3dXN1X29WNXA3cUQ5eXpBUDhKZC1rcU54YmVzYjRLXzQ5WlVFZFBleVZjZlgyUzUzdm1BajluQUNtWVljMDlIWlFvTjlsVGZwNl9NMUJNaWVRMWRtVEp4QmlWaVp5bmt2Y2FvbFJaaHFaOG9DME1BTHJVWmc?oc=5)
+      - Sample Town teenager Chris Demo scores sensational U19 goal from inside own half - Sky Sports (https://example.com/rss/3)
+      - Sample Town injuries: are they having a crisis after international withdrawals? - Sky Sports (https://example.com/rss/4)
     output: |
       ## 🔁 이적 & 뉴스
-      이번 주는 공식 이적 소식이 없었습니다. 대신 흥미로운 뉴스 몇 가지를 짚어봅니다.
-
-      ### 📰 이번 주 루머
-      - **Arsenal 유망주 Max Dowman, England U19에서 하프라인부터 단독 돌파 골 작렬** — Arsenal 팬이라면 이름을 외워두셔도 좋겠습니다. 이런 영상은 두고두고 회자됩니다 🎯 (Sky Sports)
-      - **국가대표 차출 여파로 부상 위기설 제기** — 일주일 사이 부상 명단이 빠르게 늘면서 라인업 운영에 빨간불이 켜졌습니다. 다음 경기 선발 윤곽이 평소보다 늦게 잡힐 가능성이 큽니다. (Sky Sports)
-      - **Harry Wilson, Bernardo Silva, Ibrahima Konate 등 여름 자유계약 후보군 거론** — 시즌 막판 계약 협상 분위기에 따라 명단은 더 늘어날 가능성이 있습니다. (Sky Sports)
+      ### 🧪 루머 밀
+      - **Sample Town 유망주 Chris Demo, U19에서 하프라인부터 단독 돌파 골 작렬** — 이름을 외워두셔도 좋겠습니다 🎯 (Sky Sports)
+      - **국가대표 차출 여파로 부상 위기설 제기** — 부상 명단이 빠르게 늘면서 라인업 운영에 빨간불이 켜졌습니다. (Sky Sports)
