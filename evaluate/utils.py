@@ -9,6 +9,7 @@ from typing import Dict, List, Optional, Set, Tuple
 BASE_DIR = Path(__file__).resolve().parent.parent
 FOTMOB_ROOT = BASE_DIR / "datas" / "fotmob"
 NEWSLETTER_ROOT = BASE_DIR / "datas" / "newsletter"
+NEWS_RSS_ROOT = BASE_DIR / "datas" / "news_rss"
 
 SCORE_RE = re.compile(r"(\d+)\s*-\s*(\d+)")
 
@@ -174,3 +175,19 @@ def resolve_newsletter_token(stem: str) -> Optional[str]:
     if stem.startswith(prefix):
         return stem[len(prefix):]
     return None
+
+
+def load_news_source_for_team(token: str, newsletter_date: datetime) -> str:
+    """Concatenate RSS headlines + fotmob transfers for the same 8-day window
+    as load_fotmob_for_team(). URLs are stripped so opaque Google News IDs
+    don't pollute the word pool."""
+    chunks: List[str] = []
+    for delta in range(0, 8):
+        d_str = (newsletter_date - timedelta(days=delta)).strftime("%Y%m%d")
+        for f in (
+            NEWS_RSS_ROOT / d_str / f"team_daily_report_{token}.md",
+            FOTMOB_ROOT / d_str / f"team_daily_report_{token}_transfers.md",
+        ):
+            if f.exists():
+                chunks.append(re.sub(r"\(https?://[^)]*\)", "", f.read_text(encoding="utf-8")))
+    return "\n".join(chunks)

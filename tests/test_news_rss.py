@@ -1,4 +1,5 @@
 import sys
+import time
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
@@ -9,8 +10,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from scrappers.news_rss import NewsRSS
 
 
-def _entry(title):
-    return SimpleNamespace(title=title, link=f"https://example.com/{title}", published="2026-08-07")
+def _entry(title, published_parsed=None):
+    return SimpleNamespace(
+        title=title,
+        link=f"https://example.com/{title}",
+        published="2026-08-07",
+        published_parsed=published_parsed or time.gmtime(),
+    )
 
 
 class TestGetTransferNewsRss(unittest.TestCase):
@@ -47,6 +53,17 @@ class TestGetTransferNewsRss(unittest.TestCase):
 
         self.assertEqual(len(items), 5)
         self.assertTrue(all("Man City" in item["title"] for item in items))
+
+    def test_drops_stale_entries(self):
+        old = time.gmtime(time.time() - 30 * 86400)
+        feed = SimpleNamespace(entries=[
+            _entry("Man City old story", published_parsed=old),
+            _entry("Man City fresh story"),
+        ])
+        with patch("scrappers.news_rss.feedparser.parse", return_value=feed):
+            items = self.news_rss.get_transfer_news_rss("Manchester City")
+
+        self.assertEqual([i["title"] for i in items], ["Man City fresh story"])
 
 
 if __name__ == "__main__":

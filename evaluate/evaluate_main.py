@@ -2,17 +2,18 @@
 """
 evaluate_main.py — Football News AI Evaluation Orchestrator
 
-Runs all five evaluation metrics against every newsletter in datas/newsletter/
+Runs all six evaluation metrics against every newsletter in datas/newsletter/
 and prints a quantified report with per-newsletter details and an aggregate
 summary.
 
 Metrics
 -------
-1. Score Accuracy       (weight 30%) — newsletter scores vs. fotmob source
-2. Section Completeness (weight 20%) — 4 required sections present & valid
+1. Score Accuracy       (weight 25%) — newsletter scores vs. fotmob source
+2. Section Completeness (weight 15%) — 4 required sections present & valid
 3. LLM Drift            (weight 15%) — model went off-script (chatbot mode)
-4. Hallucination Rate   (weight 25%) — player names not found in source
+4. Hallucination Rate   (weight 20%) — names not found in fotmob/RSS/transfer source
 5. Language Compliance  (weight 10%) — Korean character ratio (target >80%)
+6. News Grounding       (weight 15%) — 이적 & 뉴스 items traceable to RSS/transfers
 
 Usage
 -----
@@ -35,22 +36,25 @@ from evaluate import (
     hallucination,
     language_compliance,
     llm_drift,
+    news_grounding,
     score_accuracy,
     section_completeness,
 )
 from evaluate.utils import (
     NEWSLETTER_ROOT,
     load_fotmob_for_team,
+    load_news_source_for_team,
     parse_date,
     resolve_newsletter_token,
 )
 
 WEIGHTS = {
-    "score_accuracy":       0.30,
-    "section_completeness": 0.20,
+    "score_accuracy":       0.25,
+    "section_completeness": 0.15,
     "no_drift":             0.15,
-    "no_hallucination":     0.25,
+    "no_hallucination":     0.20,
     "language_compliance":  0.10,
+    "news_grounding":       0.15,
 }
 assert abs(sum(WEIGHTS.values()) - 1.0) < 1e-9, "WEIGHTS must sum to 1.0"
 
@@ -78,8 +82,13 @@ def evaluate_newsletter(newsletter_file: Path) -> Optional[Dict]:
     m1 = score_accuracy.evaluate(fotmob_matches, text)
     m3 = llm_drift.evaluate(text)                          # drift needed by m2
     m2 = section_completeness.evaluate(text, m3["detected"])
-    m4 = hallucination.evaluate(text, source_players)
+    # The newsletter also covers RSS/transfer news, so names from those
+    # sources are legitimate — fold them into the pool or they'd be flagged.
+    news_source = load_news_source_for_team(token, nl_date)
+    news_words = news_grounding.build_source_words(news_source, source_players)
+    m4 = hallucination.evaluate(text, source_players | news_words)
     m5 = language_compliance.evaluate(text)
+    m6 = news_grounding.evaluate(text, news_words)
 
     # Overall weighted score. A component is None when that metric genuinely
     # couldn't be measured (e.g. no source players to check hallucination
@@ -92,6 +101,7 @@ def evaluate_newsletter(newsletter_file: Path) -> Optional[Dict]:
         "no_drift":             0.0 if m3["detected"] else 1.0,
         "no_hallucination":     (1.0 - m4["rate"]) if m4["rate"] is not None else None,
         "language_compliance":  m5["ratio"],
+        "news_grounding":       m6["score"],
     }
     assert set(components) == set(WEIGHTS), "components/WEIGHTS key mismatch"
     measured = {k: v for k, v in components.items() if v is not None}
@@ -110,6 +120,7 @@ def evaluate_newsletter(newsletter_file: Path) -> Optional[Dict]:
         "llm_drift":            m3,
         "hallucination":        m4,
         "language_compliance":  m5,
+        "news_grounding":       m6,
         # scalars for aggregation
         "overall":              overall,
     }
@@ -133,7 +144,8 @@ def print_report(results: List[Dict]) -> None:
         f"sections×{WEIGHTS['section_completeness']:.0%}  "
         f"drift×{WEIGHTS['no_drift']:.0%}  "
         f"halluc×{WEIGHTS['no_hallucination']:.0%}  "
-        f"lang×{WEIGHTS['language_compliance']:.0%})"
+        f"lang×{WEIGHTS['language_compliance']:.0%}  "
+        f"news×{WEIGHTS['news_grounding']:.0%})"
     )
 
     for r in results:
@@ -142,6 +154,7 @@ def print_report(results: List[Dict]) -> None:
         m3 = r["llm_drift"]
         m4 = r["hallucination"]
         m5 = r["language_compliance"]
+        m6 = r["news_grounding"]
 
         print(f"\n[{r['date']}] {r['team']}")
         print(f"  {'─' * 48}")
@@ -183,6 +196,11 @@ def print_report(results: List[Dict]) -> None:
             f"{lang_flag} (target >{m5['target']*100:.0f}%)"
         )
 
+        # 6. News Grounding
+        print(f"  News Grounding       : {_pct(m6['score'])}  ({len(m6['items'])} items checked)")
+        for item in m6["ungrounded"]:
+            print(f"    ✗  {item[:90]}")
+
         # Overall
         print(f"  {'─' * 48}")
         print(f"  Overall Score        : {_pct(r['overall'])}  {weight_breakdown}")
@@ -205,6 +223,7 @@ def print_report(results: List[Dict]) -> None:
     print(f"  {'Section Completeness':<24}: {_pct(avg_field('section_completeness', 'score'))}")
     print(f"  {'Hallucination Rate':<24}: {_pct(avg_field('hallucination', 'rate'))}  (lower is better)")
     print(f"  {'Language Compliance':<24}: {_pct(avg_field('language_compliance', 'ratio'))}")
+    print(f"  {'News Grounding':<24}: {_pct(avg_field('news_grounding', 'score'))}")
     print(f"  {'LLM Drift Rate':<24}: {drift_n}/{n}  ({drift_n / n * 100:.0f}%)")
     print(f"  {'─' * 48}")
     print(f"  {'Overall Score':<24}: {_pct(overall_avg)}")
@@ -232,7 +251,8 @@ def render_report_markdown(results: List[Dict]) -> str:
         f"sections×{WEIGHTS['section_completeness']:.0%}, "
         f"drift×{WEIGHTS['no_drift']:.0%}, "
         f"halluc×{WEIGHTS['no_hallucination']:.0%}, "
-        f"lang×{WEIGHTS['language_compliance']:.0%}"
+        f"lang×{WEIGHTS['language_compliance']:.0%}, "
+        f"news×{WEIGHTS['news_grounding']:.0%}"
     )
 
     for r in results:
@@ -241,6 +261,7 @@ def render_report_markdown(results: List[Dict]) -> str:
         m3 = r["llm_drift"]
         m4 = r["hallucination"]
         m5 = r["language_compliance"]
+        m6 = r["news_grounding"]
 
         lines.append(f"## [{r['date']}] {r['team']}")
         lines.append("")
@@ -262,6 +283,9 @@ def render_report_markdown(results: List[Dict]) -> str:
             f"| Language Compliance | {_pct(m5['ratio'])} {lang_flag} "
             f"(target >{m5['target']*100:.0f}%) |"
         )
+        lines.append(
+            f"| News Grounding | {_pct(m6['score'])} ({len(m6['items'])} items checked) |"
+        )
         lines.append(f"| **Overall Score** | **{_pct(r['overall'])}** ({weight_breakdown}) |")
         lines.append("")
 
@@ -278,6 +302,13 @@ def render_report_markdown(results: List[Dict]) -> str:
         )
         lines.append(f"Sections: {hits_str}")
         lines.append("")
+
+        if m6["ungrounded"]:
+            lines.append("Ungrounded news items:")
+            lines.append("")
+            for item in m6["ungrounded"]:
+                lines.append(f"- {item}")
+            lines.append("")
 
         if m4["hallucinated_names"]:
             lines.append(f"Hallucinated names: {', '.join(sorted(m4['hallucinated_names']))}")
@@ -302,6 +333,7 @@ def render_report_markdown(results: List[Dict]) -> str:
     lines.append(f"| Section Completeness | {_pct(avg_field('section_completeness', 'score'))} |")
     lines.append(f"| Hallucination Rate | {_pct(avg_field('hallucination', 'rate'))} (lower is better) |")
     lines.append(f"| Language Compliance | {_pct(avg_field('language_compliance', 'ratio'))} |")
+    lines.append(f"| News Grounding | {_pct(avg_field('news_grounding', 'score'))} |")
     lines.append(f"| LLM Drift Rate | {drift_n}/{n} ({drift_n / n * 100:.0f}%) |")
     lines.append(f"| **Overall Score** | **{_pct(overall_avg)}** |")
 
@@ -344,6 +376,7 @@ def render_report_json(results: List[Dict]) -> Dict:
             "no_hallucination": pct(1 - hallucination_rate) if hallucination_rate is not None else None,
             "no_drift": pct(1 - (drift_n / n)) if n else None,
             "language_compliance": pct(avg_field("language_compliance", "ratio")),
+            "news_grounding": pct(avg_field("news_grounding", "score")),
         },
     }
 

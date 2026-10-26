@@ -27,7 +27,7 @@ MAX_AGE_DAYS = 7
 
 def _is_recent(entry):
     """True if the entry was published within MAX_AGE_DAYS (unparseable dates are dropped)."""
-    parsed = entry.get("published_parsed")
+    parsed = getattr(entry, "published_parsed", None)
     if not parsed:
         return False
     published = datetime(*parsed[:6], tzinfo=timezone.utc)
