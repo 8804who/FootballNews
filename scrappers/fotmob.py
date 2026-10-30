@@ -209,9 +209,31 @@ class FotMobCrawler:
             "team_name": team_data['details']['name'],
             "period": f"{start_date.date()} ~ {end_date.date()}",
             "matches": matches_data,
-            "transfers": transfers_data
+            "transfers": transfers_data,
+            "fixtures": self.get_fixture_list(team_data),
         }
         return report_data
+
+
+    def get_fixture_list(self, team_data):
+        """Every fixture on the team page, played or not. evaluate/gate.py
+        checks it so a finished match that was never collected can't silently
+        drop out of the newsletter."""
+        fixtures = []
+        for match in team_data.get('fixtures', {}).get('allFixtures', {}).get('fixtures', []):
+            status = match.get('status', {})
+            fixtures.append({
+                "id": match.get('id'),
+                "utc_time": status.get('utcTime'),
+                "finished": bool(status.get('finished')),
+                "cancelled": bool(status.get('cancelled')),
+                "score": status.get('scoreStr'),
+                "home": match.get('home', {}).get('name'),
+                "away": match.get('away', {}).get('name'),
+                "opponent": match.get('opponent', {}).get('name'),
+                "tournament": (match.get('tournament') or {}).get('name'),
+            })
+        return fixtures
 
     
     def _transform_team_name(self, team_name):

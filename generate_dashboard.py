@@ -11,10 +11,11 @@ from google.oauth2 import service_account
 import google.auth
 
 from config import TEAMS
-from google_sheet_parser import google_sheet_parser
+from google_sheet_parser import EMAIL_COLUMN, TEAM_COLUMN, google_sheet_parser
 from dashboard.render import render
-from evaluate.evaluate_main import evaluate_newsletter, render_report_json
+from evaluate.evaluate_main import LABELS, METRICS_VERSION, WEIGHTS, evaluate_newsletter, render_report_json
 from evaluate.utils import NEWSLETTER_ROOT
+from team_names import canonical
 
 BUCKET_NAME = "my-football-news"
 GCS_DATA_PREFIX = "football-news/datas"
@@ -22,8 +23,8 @@ GCS_HISTORY_BLOB = "football-news/dashboard/eval-history.json"
 REPO = "8804who/FootballNews"
 WORKFLOW_SCHEDULES = {
     "collect_news": "daily 09:30 KST",
-    "generate_newsletter": "Mon 10:00 KST",
-    "send_mail": "Mon 11:00 KST",
+    "generate_newsletter": "Mon, after collect_news",
+    "send_mail": "Mon, after generate_newsletter",
 }
 SERVICE_ACCOUNT_FILE = "gen-lang-client.json"
 
@@ -37,46 +38,48 @@ def _gcs_client():
     return storage.Client(credentials=credentials, project=credentials.project_id)
 
 
-def _normalize(name: str) -> str:
-    return re.sub(r"\s+", "", name).lower()
-
-
 def fetch_subscribers():
-    """Per-club subscriber counts, matched against setting.yml's team names by
-    normalized (whitespace/case-insensitive) comparison so an inconsistent
-    entry like "TottenhamHotspur" still counts toward "Tottenham Hotspur"
-    rather than silently vanishing — while still flagging the inconsistency."""
+    """Per-club counts of active subscribers (one per address, unsubscribed
+    addresses left out). Team answers are matched through teams.yml's aliases,
+    the same way send_mail.py matches them, so "TottenhamHotspur" still counts
+    toward "Tottenham Hotspur" — while still flagging answers that differ
+    from the team name, and loudly flagging ones that match no club at all."""
     records = google_sheet_parser.get_all_records()
-    raw_counts = {}
+    unsubscribed = google_sheet_parser.get_unsubscribed()
+    signups = set()
     for r in records:
-        team = (r.get("어떤 팀의 소식을 받아보고 싶나요?") or "").strip()
-        if team:
-            raw_counts[team] = raw_counts.get(team, 0) + 1
+        team = str(r.get(TEAM_COLUMN) or "").strip()
+        email = str(r.get(EMAIL_COLUMN) or "").strip().lower()
+        if team and email and email not in unsubscribed:
+            signups.add((team, email))
 
     known_names = [t["name"] for t in TEAMS]
-    known_by_norm = {_normalize(n): n for n in known_names}
-
     counts = {n: 0 for n in known_names}
-    mismatches = set()
-    for raw_team, count in raw_counts.items():
-        norm = _normalize(raw_team)
-        matched = known_by_norm.get(norm)
-        if matched:
-            counts[matched] += count
+    variants, unmatched = set(), set()
+    for raw_team, _ in signups:
+        matched = canonical(raw_team)
+        if matched in counts:
+            counts[matched] += 1
             if raw_team != matched:
-                mismatches.add(raw_team)
+                variants.add(raw_team)
         else:
-            mismatches.add(raw_team)
+            unmatched.add(raw_team)
 
     roster = [(name, counts[name]) for name in known_names]
-    flag = None
-    if mismatches:
-        flag = (
-            "the sheet stores " + ", ".join(f'"{m}"' for m in sorted(mismatches))
-            + " which doesn't exactly string-match the team names used elsewhere in this codebase "
-            "(counts above are still correct via normalized matching, but it's fragile — worth "
-            "normalizing at the source)."
+    notes = []
+    if unmatched:
+        notes.append(
+            "sign-ups for " + ", ".join(f'"{m}"' for m in sorted(unmatched))
+            + " match no configured club, so those subscribers receive nothing — fix the answer "
+            "in the sheet or add an alias to teams.yml"
         )
+    if variants:
+        notes.append(
+            "the sheet stores " + ", ".join(f'"{m}"' for m in sorted(variants))
+            + " rather than the exact team name (counted through teams.yml's aliases; a fixed "
+            "dropdown in the sign-up form would stop new variants)"
+        )
+    flag = "; ".join(notes) + "." if notes else None
     return roster, flag
 
 
@@ -124,10 +127,11 @@ def fetch_workflow_runs():
 
 
 def download_latest_week(client) -> str | None:
-    """Download the most recent newsletter week and its matching 7-day FotMob
-    window into the real datas/ paths evaluate_main.py already reads from —
-    mirrors how generate_newsletter.yaml's own CI step populates that
-    directory, so no path assumptions change."""
+    """Download the most recent newsletter week and the FotMob + RSS folders
+    its edition was built from into the real datas/ paths evaluate_main.py
+    reads — the same 9 folders generate_newsletter.yaml downloads. (RSS is
+    needed too: without it, every name that came from a headline is scored
+    as hallucinated.)"""
     bucket = client.bucket(BUCKET_NAME)
     it = client.list_blobs(bucket, prefix=f"{GCS_DATA_PREFIX}/newsletter/", delimiter="/")
     list(it)
@@ -142,22 +146,25 @@ def download_latest_week(client) -> str | None:
         blob.download_to_filename(str(local))
 
     base = datetime.strptime(latest, "%Y%m%d")
-    for i in range(0, 8):
+    for i in range(0, 9):
         d = (base - timedelta(days=i)).strftime("%Y%m%d")
-        for blob in bucket.list_blobs(prefix=f"{GCS_DATA_PREFIX}/fotmob/{d}/"):
-            local = Path("datas/fotmob") / d / blob.name.split("/")[-1]
-            local.parent.mkdir(parents=True, exist_ok=True)
-            blob.download_to_filename(str(local))
+        for data_type in ("fotmob", "news_rss"):
+            for blob in bucket.list_blobs(prefix=f"{GCS_DATA_PREFIX}/{data_type}/{d}/"):
+                local = Path("datas") / data_type / d / blob.name.split("/")[-1]
+                local.parent.mkdir(parents=True, exist_ok=True)
+                blob.download_to_filename(str(local))
 
     return latest
 
 
 def run_evaluation(date_str: str):
+    """Score a week now — only for weeks without a stored summary.json (before
+    Oct 30 2026); CI stores one for every new week."""
     date_dir = NEWSLETTER_ROOT / date_str
     if not date_dir.exists():
         return None
     results = []
-    for nf in sorted(date_dir.glob("*.md")):
+    for nf in sorted(date_dir.glob("newsletter_*.md")):
         r = evaluate_newsletter(nf)
         if r is not None:
             results.append(r)
@@ -166,13 +173,13 @@ def run_evaluation(date_str: str):
     return render_report_json(results)
 
 
-METRIC_LABELS = [
-    ("score_accuracy", "Score Accuracy"),
-    ("section_completeness", "Section Completeness"),
-    ("no_hallucination", "No Hallucination"),
-    ("no_drift", "No LLM Drift"),
-    ("language_compliance", "Language Compliance"),
-]
+def load_summary(client, date_str: str):
+    """The week's summary.json written by CI, if it uses the current metrics."""
+    blob = client.bucket(BUCKET_NAME).blob(f"{GCS_DATA_PREFIX}/evaluation/{date_str}/summary.json")
+    if not blob.exists():
+        return None
+    summary = json.loads(blob.download_as_text())
+    return summary if summary.get("metrics_version") == METRICS_VERSION else None
 
 
 def shape_eval_current(summary: dict, date_str: str) -> dict:
@@ -181,8 +188,8 @@ def shape_eval_current(summary: dict, date_str: str) -> dict:
     expects (overall, metrics as a display-ordered [(label, value)] list)."""
     iso_date = f"{date_str[:4]}-{date_str[4:6]}-{date_str[6:]}"
     metrics = [
-        (label, summary["metrics"][key])
-        for key, label in METRIC_LABELS
+        (LABELS[key], summary["metrics"][key])
+        for key in WEIGHTS
         if summary["metrics"].get(key) is not None
     ]
     return {
@@ -190,6 +197,8 @@ def shape_eval_current(summary: dict, date_str: str) -> dict:
         "n": summary["n"],
         "overall": summary["overall_score"],
         "metrics": metrics,
+        # Built from WEIGHTS so the legend can't drift from the real weighting.
+        "weights": " · ".join(f"{LABELS[k].split(' (')[0].lower()} {w:.0%}" for k, w in WEIGHTS.items()),
     }
 
 
@@ -231,13 +240,31 @@ def save_eval_history(client, history):
     blob.upload_from_string(json.dumps(history, indent=2), content_type="application/json")
 
 
-def append_if_new(history, date_str: str, overall_score: float, n: int):
-    iso_date = f"{date_str[:4]}-{date_str[4:6]}-{date_str[6:]}"
-    if any(h["date"] == iso_date for h in history):
+def history_entry(date_str: str, summary: dict) -> dict:
+    return {
+        "date": f"{date_str[:4]}-{date_str[4:6]}-{date_str[6:]}",
+        "overall_score": summary["overall_score"],
+        "n": summary["n"],
+        "metrics_version": summary.get("metrics_version", METRICS_VERSION),
+        "metrics": summary.get("metrics", {}),
+    }
+
+
+def append_if_new(history, date_str: str, summary: dict):
+    """Add the week, or replace an entry scored by an older metrics version.
+    Entries without a version are from before versioning (v1)."""
+    entry = history_entry(date_str, summary)
+    same_week = [h for h in history if h["date"] == entry["date"]]
+    if any(h.get("metrics_version", 1) == entry["metrics_version"] for h in same_week):
         return history, False
-    history = history + [{"date": iso_date, "overall_score": overall_score, "n": n}]
+    history = [h for h in history if h["date"] != entry["date"]] + [entry]
     history.sort(key=lambda h: h["date"])
     return history, True
+
+
+def current_trend(history):
+    """Only weeks scored by the current metrics are comparable on one line."""
+    return [h for h in history if h.get("metrics_version", 1) == METRICS_VERSION]
 
 
 def main():
@@ -261,15 +288,15 @@ def main():
     history = load_eval_history(client)
 
     if latest_date:
-        summary = run_evaluation(latest_date)
+        summary = load_summary(client, latest_date) or run_evaluation(latest_date)
         editions, week_range = extract_editions(latest_date)
         if week_range:
             editions_week = f"week of {week_range}"
         if summary and summary["overall_score"] is not None:
             eval_current = shape_eval_current(summary, latest_date)
-            history, appended = append_if_new(history, latest_date, summary["overall_score"], summary["n"])
+            history, appended = append_if_new(history, latest_date, summary)
             if appended:
-                print(f"Appended {latest_date} to eval history ({summary['overall_score']}%).")
+                print(f"Added {latest_date} to eval history ({summary['overall_score']}%, metrics v{METRICS_VERSION}).")
                 save_eval_history(client, history)
         else:
             eval_caveat = (
@@ -285,7 +312,7 @@ def main():
         "roster_flag": roster_flag,
         "workflows": workflows,
         "eval_current": eval_current,
-        "eval_history": history,
+        "eval_history": current_trend(history),
         "eval_caveat": eval_caveat,
         "editions": editions,
         "editions_week": editions_week,

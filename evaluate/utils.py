@@ -1,15 +1,15 @@
 """Shared paths, regex helpers, and data-loading utilities for all evaluators."""
 
 import re
-from datetime import datetime, timedelta
-from functools import lru_cache
+from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
+from typing import List, Optional, Set, Tuple
+
+import edition
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-FOTMOB_ROOT = BASE_DIR / "datas" / "fotmob"
-NEWSLETTER_ROOT = BASE_DIR / "datas" / "newsletter"
-NEWS_RSS_ROOT = BASE_DIR / "datas" / "news_rss"
+DATA_ROOT = BASE_DIR / "datas"
+NEWSLETTER_ROOT = DATA_ROOT / "newsletter"
 
 SCORE_RE = re.compile(r"(\d+)\s*-\s*(\d+)")
 
@@ -20,6 +20,11 @@ _EVENT_RE = re.compile(
     r'(?:Goal|Red Card(?:\s*\([^)]*\))?|Yellow Card|Player Substitution):\s*'
     r'([A-Z][^\(\n\|]*)'
 )
+# The stats table header names both sides the way FotMob shortens them
+# ("| Stat | Como | Man United |"), which is how the model writes them.
+_STATS_HEADER_RE = re.compile(r"^\| Stat \| (.+?) \| (.+?) \|$", re.MULTILINE)
+_MD_LINK_RE = re.compile(r"\[([^\]]*)\]\((https?://[^)\s]+)\)")
+_URL_RE = re.compile(r"https?://\S+")
 
 
 def parse_date(name: str) -> Optional[datetime]:
@@ -27,6 +32,17 @@ def parse_date(name: str) -> Optional[datetime]:
         return datetime.strptime(name, "%Y%m%d")
     except ValueError:
         return None
+
+
+def strip_links(text: str) -> str:
+    """'[BBC](https://…)' → 'BBC', bare URLs removed — so link targets aren't
+    read as names or English text by the metrics."""
+    return _URL_RE.sub("", _MD_LINK_RE.sub(r"\1", text))
+
+
+def extract_links(text: str) -> List[Tuple[str, str]]:
+    """(label, url) for every markdown link in the text."""
+    return _MD_LINK_RE.findall(text)
 
 
 def _parse_fotmob_matches(text: str) -> List[Tuple[str, str, int, int]]:
@@ -111,58 +127,56 @@ def _parse_source_players(text: str) -> Set[str]:
     return names
 
 
-@lru_cache(maxsize=None)
-def _load_fotmob_file(path: Path) -> Tuple[Tuple[Tuple[str, str, int, int], ...], frozenset]:
-    """Read + parse a fotmob file once. Cached because the same file falls inside
-    the lookback window of multiple (weekly, overlapping) newsletters."""
-    text = path.read_text(encoding="utf-8")
-    return tuple(_parse_fotmob_matches(text)), frozenset(_parse_source_players(text))
+def source_available(token: str, newsletter_date: datetime) -> bool:
+    """Whether any collected data for this team exists in the edition's
+    folders. Without it nothing can be measured (e.g. a partial download),
+    which is different from a week that genuinely had no matches or news."""
+    start, _ = edition.edition_window(newsletter_date)
+    for d in edition.folder_dates(start, newsletter_date):
+        for path in (DATA_ROOT / "fotmob" / d / f"team_daily_report_{token}_matches.md",
+                     DATA_ROOT / "news_rss" / d / f"team_daily_report_{token}.md"):
+            if path.exists():
+                return True
+    return False
 
 
-def extract_fotmob_matches(path: Path) -> List[Tuple[str, str, int, int]]:
-    matches, _ = _load_fotmob_file(path)
-    return list(matches)
+def load_match_blocks(token: str, newsletter_date: datetime) -> List[str]:
+    """The match blocks generate_newsletter.py gave the model for this edition
+    (edition.load_matches: kicked off in the edition week, each once)."""
+    start, end = edition.edition_window(newsletter_date)
+    return edition.load_matches(token, start, end, newsletter_date, root=DATA_ROOT)
 
 
-def extract_source_players(path: Path) -> Set[str]:
-    _, players = _load_fotmob_file(path)
-    return set(players)
+def load_transfer_lines(token: str, newsletter_date: datetime) -> List[str]:
+    start, end = edition.edition_window(newsletter_date)
+    return edition.load_transfers(token, start, end, newsletter_date, root=DATA_ROOT)
 
 
 def load_fotmob_for_team(
     token: str,
     newsletter_date: datetime,
 ) -> Tuple[List[Tuple[str, str, int, int]], Set[str]]:
-    """Aggregate fotmob matches + player names from the 8 days up to and
-    including the newsletter date.
+    """Matches + player names for the edition dated `newsletter_date`.
 
-    Mirrors generate_newsletter.py's load_weekly_data() window exactly: 7
-    days before the newsletter date *plus* the newsletter's own generation
-    day. The generation day is included because collect_news.py names its
-    output folder by the day it runs, not the match date — so a Sunday-night
-    UK match (Monday dawn in Korea) lands in that same-day folder, and the
-    LLM does see it. Matches are deduplicated because each day's snapshot
-    file is itself a rolling report and can repeat matches already seen on a
-    previous day within the window.
+    Uses the same selection generate_newsletter.py gives the model
+    (edition.load_matches): every match that kicked off in the edition week,
+    once, wherever collect_news.py happened to store it.
     """
-    matches: Set[Tuple[str, str, int, int]] = set()
-    players: Set[str] = set()
-    for delta in range(0, 8):
-        d_str = (newsletter_date - timedelta(days=delta)).strftime("%Y%m%d")
-        f = FOTMOB_ROOT / d_str / f"team_daily_report_{token}_matches.md"
-        if f.exists():
-            m, p = _load_fotmob_file(f)
-            matches.update(m)
-            players |= p
+    start, end = edition.edition_window(newsletter_date)
+    blocks = load_match_blocks(token, newsletter_date)
+    text = edition.matches_markdown(token.replace("_", " "), blocks, start, end)
 
+    matches = _parse_fotmob_matches(text)
+    players = _parse_source_players(text)
     # Team names (home/away) are legitimate proper nouns too — fold them into
     # the known-names pool so hallucination detection doesn't flag
     # correctly-used team names.
     for home, away, _, _ in matches:
         players.add(home)
         players.add(away)
-
-    return list(matches), players
+    for pair in _STATS_HEADER_RE.findall(text):
+        players.update(pair)
+    return matches, players
 
 
 def resolve_newsletter_token(stem: str) -> Optional[str]:
@@ -177,17 +191,19 @@ def resolve_newsletter_token(stem: str) -> Optional[str]:
     return None
 
 
+def load_news_items_for_team(token: str, newsletter_date: datetime) -> List["edition.NewsItem"]:
+    """The headlines generate_newsletter.py gave the model for this edition."""
+    start, end = edition.edition_window(newsletter_date)
+    blocks = edition.load_matches(token, start, end, newsletter_date, root=DATA_ROOT)
+    return edition.load_news(
+        token, token.replace("_", " "), start, end, newsletter_date,
+        edition.played_matches(blocks), root=DATA_ROOT,
+    )
+
+
 def load_news_source_for_team(token: str, newsletter_date: datetime) -> str:
-    """Concatenate RSS headlines + fotmob transfers for the same 8-day window
-    as load_fotmob_for_team(). URLs are stripped so opaque Google News IDs
-    don't pollute the word pool."""
-    chunks: List[str] = []
-    for delta in range(0, 8):
-        d_str = (newsletter_date - timedelta(days=delta)).strftime("%Y%m%d")
-        for f in (
-            NEWS_RSS_ROOT / d_str / f"team_daily_report_{token}.md",
-            FOTMOB_ROOT / d_str / f"team_daily_report_{token}_transfers.md",
-        ):
-            if f.exists():
-                chunks.append(re.sub(r"\(https?://[^)]*\)", "", f.read_text(encoding="utf-8")))
-    return "\n".join(chunks)
+    """Headlines + FotMob transfer lines the model saw for this edition, as
+    plain text (URLs left out so opaque Google News IDs don't pollute the
+    word pool)."""
+    headlines = [item.headline for item in load_news_items_for_team(token, newsletter_date)]
+    return "\n".join(headlines + load_transfer_lines(token, newsletter_date))

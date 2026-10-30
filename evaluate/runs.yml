@@ -1,0 +1,28 @@
+# Variants for evaluate/harness.py. Each run regenerates the same past
+# editions (inputs already in datas/ — run download_from_gcs.py first) with
+# its own model / prompt / examples, and is scored with the production
+# metrics and pre-send checks. The first run is the baseline the others are
+# compared with. Paths are relative to the project root.
+
+# Edition dates (Mondays). Sep 21 and Oct 19 2026 had matches for nearly
+# every club; Sep 28 and Oct 5 had none, so they'd only test the news half.
+dates: [20260921, 20261019]
+
+runs:
+  - name: baseline
+    model: gpt-5-mini            # production (setting.yml)
+  - name: gpt-5.4-nano
+    model: gpt-5.4-nano
+  - name: gpt-5.4-mini
+    model: gpt-5.4-mini
+  - name: gpt-5.4-mini-reasoning
+    model: gpt-5.4-mini
+    reasoning_effort: low        # gpt-5.4+ doesn't reason unless asked
+  - name: gpt-5.6-terra
+    model: gpt-5.6-terra
+
+  # A prompt experiment: copy prompt.yml, change one thing, point at it.
+  # - name: shorter-headlines
+  #   model: gpt-5-mini
+  #   prompt: experiments/prompt_shorter_headlines.yml
+  #   examples: example.yml

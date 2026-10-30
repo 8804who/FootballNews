@@ -1,9 +1,17 @@
 name: send_mail
 
 on:
-  schedule:
-    - cron: '0 2 * * 1' # 11:00 KST Monday (every week)
+  # Started by generate_newsletter once this week's newsletter is ready.
   workflow_dispatch:
+    inputs:
+      force_teams:
+        description: Comma-separated teams to send even though the pre-send check held them
+        type: string
+        default: ""
+      dry_run:
+        description: Only print what would be sent
+        type: boolean
+        default: false
 
 jobs:
   send_mail:
@@ -14,6 +22,7 @@ jobs:
       GOOGLE_CLOUD_SPREADSHEET_URL: ${{ secrets.GOOGLE_CLOUD_SPREADSHEET_URL }}
       SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
       SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+      ALERT_EMAIL: ${{ secrets.ALERT_EMAIL }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -32,6 +41,8 @@ jobs:
         run: |
           pip install -r requirements.txt
 
+      # Brings gate.json (which clubs are held) and sent.json (who already
+      # got this edition) down with the newsletters.
       - name: Download current week's newsletters from GCS
         run: |
           DATE=$(date +%Y%m%d)
@@ -41,5 +52,25 @@ jobs:
             datas/newsletter/
 
       - name: send_mail
+        env:
+          FORCE_TEAMS: ${{ inputs.force_teams }}
+          DRY_RUN: ${{ inputs.dry_run }}
         run: |
-          python send_mail.py
+          ARGS=()
+          if [ "$DRY_RUN" = "true" ]; then ARGS+=(--dry-run); fi
+          if [ -n "$FORCE_TEAMS" ]; then ARGS+=(--force-teams "$FORCE_TEAMS"); fi
+          python send_mail.py "${ARGS[@]}"
+
+      - name: Record who was sent to
+        if: always()
+        run: |
+          DATE=$(date +%Y%m%d)
+          if [ -f "datas/newsletter/${DATE}/sent.json" ]; then
+            gcloud storage cp datas/newsletter/${DATE}/sent.json \
+              gs://my-football-news/football-news/datas/newsletter/${DATE}/sent.json
+          fi
+
+      - name: Alert on failure
+        if: failure()
+        run: |
+          python notify.py --subject "send_mail failed" --body "Some subscribers may not have received this week's newsletter. Re-running send_mail only emails the ones who didn't (sent.json). ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"

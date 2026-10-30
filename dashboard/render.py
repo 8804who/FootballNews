@@ -236,7 +236,7 @@ def render(data: dict) -> str:
         eval_overall_html = f"""
           <div class="eval-overall"><span class="big num">{eval_current['overall']:.1f}%</span>
           <span class="lbl">overall weighted score for week of {eval_current['date']} (n={eval_current['n']})<br>
-          (score&times;30% &middot; sections&times;20% &middot; drift&times;15% &middot; halluc&times;25% &middot; lang&times;10%)</span></div>
+          ({eval_current['weights']})</span></div>
           {_scorecard_html(eval_current['metrics'])}
         """
         hero_eval_value = f"{eval_current['overall']:.1f}"

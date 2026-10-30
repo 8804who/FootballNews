@@ -9,6 +9,7 @@ if os.path.exists("api.yml"):
         URL = data["URL"]
         GOOGLE_CLOUD = data["GOOGLE_CLOUD"]
         SMTP = data["SMTP"]
+        ALERT_EMAIL = data.get("ALERT_EMAIL") or SMTP["USERNAME"]
 else:
     API_KEY = {"OPENAI": os.environ["OPENAI_API_KEY"]}
     URL = {
@@ -25,6 +26,8 @@ else:
         "USERNAME": os.environ["SMTP_USERNAME"],
         "PASSWORD": os.environ["SMTP_PASSWORD"],
     }
+    # Where failure / held-edition alerts go (notify.py); defaults to the sender.
+    ALERT_EMAIL = os.environ.get("ALERT_EMAIL") or SMTP["USERNAME"]
 
 ### EXAMPLE ###
 with open("example.yml", "r") as f:
@@ -48,3 +51,5 @@ with open("setting.yml", "r") as f:
     data = load(f, Loader=Loader)
     TEAMS = data["teams"]
     MODEL = data["model"]
+    REASONING_EFFORT = data.get("reasoning_effort")
+    NEWSLETTER = data.get("newsletter") or {}
