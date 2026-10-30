@@ -1,9 +1,18 @@
 name: generate_newsletter
 
 on:
-  schedule:
-    - cron: '0 1 * * 1' # 10:00 KST Monday (every week)
+  # Started by collect_news after Monday's collection succeeds. Run it by hand
+  # to regenerate; it only emails subscribers if send_after is ticked.
   workflow_dispatch:
+    inputs:
+      send_after:
+        description: Start send_mail when the newsletter is ready
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  actions: write # lets this run start send_mail
 
 jobs:
   generate_newsletter:
@@ -14,6 +23,7 @@ jobs:
       GOOGLE_CLOUD_SPREADSHEET_URL: ${{ secrets.GOOGLE_CLOUD_SPREADSHEET_URL }}
       SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
       SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+      ALERT_EMAIL: ${{ secrets.ALERT_EMAIL }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -32,13 +42,15 @@ jobs:
         run: |
           pip install -r requirements.txt
 
-      - name: Download past 7 days of football data from GCS
+      - name: Download this edition's football data from GCS
         run: |
           mkdir -p datas/fotmob datas/news_rss
-          # i=0 (today) is included: collect_news.py's Monday-morning run names its
-          # output folder by the day it runs, not the match date, so it's where
-          # Sunday's late UK kick-off (Monday dawn KST) actually lands.
-          for i in $(seq 0 7); do
+          # The edition covers last Monday 00:00 UTC to this Monday 00:00 UTC
+          # (edition.py), and collect_news.py names folders by the day it runs
+          # and looks 3 days back, so the edition's matches sit in the folders
+          # from last Monday through today. One extra day covers a re-run on
+          # Tuesday.
+          for i in $(seq 0 8); do
             DATE=$(date -d "-${i} days" +%Y%m%d)
             gcloud storage cp -r \
               gs://my-football-news/football-news/datas/fotmob/${DATE} \
@@ -52,20 +64,44 @@ jobs:
         run: |
           python generate_newsletter.py
 
+      # summary.json is what the dashboard shows and keeps as history, so a
+      # week is scored once, by the metric version that was live that week.
+      # --judge adds the LLM faithfulness check (~$0.01 per edition).
       - name: Evaluate newsletter
         continue-on-error: true
         run: |
           python evaluate/evaluate_main.py \
-            --date $(date +%Y%m%d) \
-            --output datas/evaluation/$(date +%Y%m%d)/report.md
+            --date $(date +%Y%m%d) --judge \
+            --output datas/evaluation/$(date +%Y%m%d)/report.md \
+            --json-output datas/evaluation/$(date +%Y%m%d)/summary.json
 
+      # Writes gate.json: clubs that fail a hard check are not emailed by
+      # send_mail, and the operator gets an alert listing why.
+      - name: Check each edition before sending
+        run: |
+          python evaluate/gate.py --date $(date +%Y%m%d) --alert
+
+      # Copy into the parent prefix: copying onto an existing
+      # newsletter/{date} prefix would nest a re-run under {date}/{date}/.
       - name: Upload newsletter to GCS
         run: |
           gcloud storage cp -r datas/newsletter/$(date +%Y%m%d) \
-            gs://my-football-news/football-news/datas/newsletter/$(date +%Y%m%d)
+            gs://my-football-news/football-news/datas/newsletter/
 
       - name: Upload evaluation report to GCS
         continue-on-error: true
         run: |
           gcloud storage cp -r datas/evaluation/$(date +%Y%m%d) \
-            gs://my-football-news/football-news/datas/evaluation/$(date +%Y%m%d)
+            gs://my-football-news/football-news/datas/evaluation/
+
+      - name: Start send_mail
+        if: inputs.send_after
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run send_mail.yaml --repo "${{ github.repository }}"
+
+      - name: Alert on failure
+        if: failure()
+        run: |
+          python notify.py --subject "generate_newsletter failed" --body "No newsletter was sent. ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"

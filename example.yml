@@ -1,80 +1,82 @@
+# Few-shot examples. Every club, player, manager and headline in this file is
+# FICTIONAL and shows FORMAT ONLY: real names here used to leak into
+# subscribers' newsletters (Aug–Oct 2026). evaluate/gate.py holds any edition
+# that contains a name from this file, so keep them obviously made up.
+
 matches_report:
   - input: |
-      Team: Arsenal
+      Team: Example FC
       Venue: Home
-      Match: Arsenal vs Liverpool
+      Match: Example FC vs Demo United
       Score: 3-1
       Key Events:
-      - 15' Arsenal: Goal by Bukayo Saka
-      - 32' Liverpool: Goal by Mohamed Salah
-      - 45' Arsenal: Goal by Gabriel Jesus
-      - 78' Arsenal: Goal by Martin Odegaard
+      - 15' Example FC: Goal by Alex Sample
+      - 32' Demo United: Goal by Chris Demo
+      - 45' Example FC: Goal by Jordan Placeholder
+      - 78' Example FC: Goal by Taylor Mock
     output: |
       ## 🏆 이번 주 헤드라인
-      **Arsenal, Saka·Jesus·Odegaard 골 잔치로 Liverpool 제압**
+      **Example FC, Sample·Placeholder·Mock 골 잔치로 Demo United 제압**
 
       ## ⭐ 이번 주 베스트 경기
-      Arsenal이 홈에서 Liverpool을 3-1로 꺾었습니다. 15분 만에 Bukayo Saka가 선제골로 분위기를 가져왔고, Mohamed Salah에게 동점을 허용했지만 전반 막판 Gabriel Jesus가 다시 앞서 나갔습니다. 후반 78분 Martin Odegaard의 쐐기골로 사실상 경기를 닫아버렸습니다.
+      Example FC가 홈에서 Demo United를 3-1로 꺾었습니다. 15분 만에 Alex Sample이 선제골로 분위기를 가져왔고, Chris Demo에게 동점을 허용했지만 전반 막판 Jordan Placeholder가 다시 앞서 나갔습니다. 후반 78분 Taylor Mock의 쐐기골로 사실상 경기를 닫아버렸습니다.
 
       ## 📊 한눈에 보는 스코어보드
       | 경기 | 스코어 | 한 줄 요약 |
       |------|--------|----------|
-      | Arsenal vs Liverpool | 3-1 | Salah 한 골은 잠깐의 위안에 그쳤습니다 |
+      | Example FC vs Demo United | 3-1 | Chris Demo 한 골은 잠깐의 위안에 그쳤습니다 |
       ---
   - input: |
-      Team: Manchester City
+      Team: Mock City
       Venue: Away
-      Match: Chelsea vs Manchester City
+      Match: Sample Town vs Mock City
       Score: 0-2
       Key Events:
-      - 23' Manchester City: Goal by Erling Haaland
-      - 67' Manchester City: Goal by Kevin De Bruyne
+      - 23' Mock City: Goal by Riley Stub
+      - 67' Mock City: Goal by Casey Dummy
     output: |
       ## 🏆 이번 주 헤드라인
-      **Pep의 City, 적지에서도 같은 풍경**
+      **Mock City, 적지에서도 같은 풍경**
 
       ## ⭐ 이번 주 베스트 경기
-      Manchester City가 적지에서 Chelsea를 2-0으로 잠재웠습니다. Erling Haaland가 23분 만에 선제골로 분위기를 깔아두자, 후반 Kevin De Bruyne이 한 골을 더 보태며 승부에 못을 박았습니다. 무실점까지 챙긴 깔끔한 원정이었습니다 ✅
+      Mock City가 적지에서 Sample Town을 2-0으로 잠재웠습니다. Riley Stub이 23분 만에 선제골로 분위기를 깔아두자, 후반 Casey Dummy가 한 골을 더 보태며 승부에 못을 박았습니다. 무실점까지 챙긴 깔끔한 원정이었습니다 ✅
 
       ## 📊 한눈에 보는 스코어보드
       | 경기 | 스코어 | 한 줄 요약 |
       |------|--------|----------|
-      | Chelsea vs Manchester City | 0-2 | Haaland-De Bruyne 듀오는 어딜 가도 똑같습니다 |
+      | Sample Town vs Mock City | 0-2 | Stub-Dummy 듀오는 어딜 가도 똑같습니다 |
       ---
 
 transfers_and_news_report:
-  # NOTE: every player name and headline below is FICTIONAL and for format only.
-  # Never reuse them in a real newsletter.
   - input: |
       ### Official Transfers
       Team: Example FC
       Transfers:
-      - Player: Alex Sample Type: Transfer Date: 2000-01-01
+      - **Player:** Alex Sample **Type:** Example FC -> Demo United **Date:** 2000-01-01
 
       ### News & Rumors
-      Team: Example FC
-      News Rumors:
-      - Example FC in race with Demo United to sign Jordan Placeholder - Sky Sports (https://example.com/rss/1)
-      - Example FC manager Sam Fictional asked whether he will honour his contract - Sky Sports (https://example.com/rss/2)
+      - [N1] 2000-01-02 · Sky Sports · 보도 · Example FC in race with Demo United to sign Jordan Placeholder
+      - [N2] 2000-01-03 · Sky Sports · 가십 · Example FC manager Sam Fictional asked whether he will honour his contract - Paper Talk
     output: |
       ## 🔁 이적 & 뉴스
       ### ✅ 공식 뉴스
-      **Alex Sample, Example FC를 떠나는 이적이 공식 확정됐습니다.** 중원의 한 축이 빠지는 셈이라, 라인업 구성에 변화는 불가피해 보입니다.
+      **Alex Sample, Example FC를 떠나 Demo United로 가는 이적이 공식 확정됐습니다.** 중원의 한 축이 빠지는 셈이라, 라인업 구성에 변화는 불가피해 보입니다.
 
       ### 🧪 루머 밀
-      - **Example FC, Jordan Placeholder 영입전에서 Demo United와 정면충돌** — 같은 선수를 두고 두 클럽이 맞붙는 모양새입니다. 가능성은 약 70% 정도로 보입니다. (Sky Sports)
-      - **Sam Fictional 감독에게 계약 이행 의사 공식 확인 요청** — 감독 거취가 시즌 후반 가장 큰 변수로 떠올랐습니다. (Sky Sports)
+      - **Example FC, Jordan Placeholder 영입전에서 Demo United와 정면충돌** (보도) — 같은 선수를 두고 두 클럽이 맞붙는 모양새입니다. [N1]
+      - **Sam Fictional 감독, 계약을 끝까지 지킬지 질문 받아** (가십) — 감독 거취가 시즌 후반 가장 큰 변수로 떠올랐습니다. [N2]
+
+      ### 🎭 드라마 앵글
+      **한 선수를 두고 두 클럽이 정면으로 맞붙었습니다.** 누가 먼저 움직이느냐에 따라 두 팀의 시즌 구상이 통째로 달라질 수 있습니다. [N1]
   - input: |
       ### Official Transfers
       (none this week)
 
       ### News & Rumors
-      Team: Sample Town
-      News Rumors:
-      - Sample Town teenager Chris Demo scores sensational U19 goal from inside own half - Sky Sports (https://example.com/rss/3)
-      - Sample Town injuries: are they having a crisis after international withdrawals? - Sky Sports (https://example.com/rss/4)
+      - [N1] 2000-01-04 · Sky Sports · 보도 · Sample Town teenager Chris Demo scores sensational U19 goal from inside own half
+      - [N2] 2000-01-05 · BBC · 보도 · Sample Town injuries: are they having a crisis after international withdrawals?
     output: |
       ## 🔁 이적 & 뉴스
       ### 🧪 루머 밀
-      - **Sample Town 유망주 Chris Demo, U19에서 하프라인부터 단독 돌파 골 작렬** — 이름을 외워두셔도 좋겠습니다 🎯 (Sky Sports)
-      - **국가대표 차출 여파로 부상 위기설 제기** — 부상 명단이 빠르게 늘면서 라인업 운영에 빨간불이 켜졌습니다. (Sky Sports)
+      - **Sample Town 유망주 Chris Demo, U19에서 하프라인부터 단독 돌파 골 작렬** (보도) — 이름을 외워두셔도 좋겠습니다 🎯 [N1]
+      - **국가대표 차출 여파로 부상 위기설 제기** (보도) — 부상 명단이 빠르게 늘면서 라인업 운영에 빨간불이 켜졌습니다. [N2]

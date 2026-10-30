@@ -57,3 +57,14 @@ fotmob:
       id: 8456
     - name: Tottenham Hotspur
       id: 8586
+
+# Other spellings of each club (FotMob's short names, headlines, the model's
+# output, sign-up form answers), so they all resolve to the name above.
+# Spaces, case, accents and a trailing "FC" are ignored when matching.
+aliases:
+  Manchester United: [Man United, Man Utd, 맨유, 맨체스터 유나이티드]
+  Liverpool: [리버풀]
+  Chelsea: [첼시]
+  Arsenal: [아스날, 아스널]
+  Manchester City: [Man City, 맨시티, 맨체스터 시티]
+  Tottenham Hotspur: [Tottenham, Spurs, 토트넘, 토트넘 홋스퍼]

@@ -39,8 +39,10 @@ class TestGetTransferNewsRss(unittest.TestCase):
             items = self.news_rss.get_transfer_news_rss("Tottenham Hotspur")
 
         titles = [item["title"] for item in items]
-        self.assertIn("Tottenham Hotspur FC - Transfer news, results, fixtures", titles)
         self.assertIn("Spurs eye move for Serie A winger - Sky Sports", titles)
+        # Names the club, but it's a landing page with no story; the model used
+        # to turn pages like this into invented "50%" rumors.
+        self.assertNotIn("Tottenham Hotspur FC - Transfer news, results, fixtures", titles)
         self.assertNotIn("Man Utd transfer news, rumours and gossip: Live updates", titles)
         self.assertNotIn("Virgil van Dijk: Liverpool captain ready to leave club", titles)
         self.assertNotIn("Football Games, Results, Scores, Transfers, News - Sky Sports", titles)

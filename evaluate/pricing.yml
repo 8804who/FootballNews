@@ -1,0 +1,13 @@
+# USD per 1M tokens, standard tier (text). Used by evaluate/cost.py to turn
+# the token counts in usage.json into a cost per edition.
+#
+# Prices change: check each model's page (https://developers.openai.com/api/docs/models/<model>)
+# and update `updated` when you edit this. Reasoning tokens are billed as
+# output tokens; cached input tokens at the cached rate. A model missing here
+# is reported with tokens but no cost.
+updated: 2026-10-30
+models:
+  gpt-5-mini:    {input: 0.25, cached_input: 0.025, output: 2.00}
+  gpt-5.4-nano:  {input: 0.20, cached_input: 0.02,  output: 1.25}
+  gpt-5.4-mini:  {input: 0.75, cached_input: 0.075, output: 4.50}
+  gpt-5.6-terra: {input: 2.00, cached_input: 0.20,  output: 12.00}

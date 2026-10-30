@@ -7,3 +7,14 @@ teams:
   - name: Tottenham Hotspur
 
 model: gpt-5-mini
+# Newer models (gpt-5.4+) don't reason unless asked. The Oct 2026 comparison
+# (WORK_REPORT.ko.md) favoured gpt-5.4-mini with `reasoning_effort: low`;
+# check it on a few more weeks with evaluate/harness.py before switching.
+# reasoning_effort: low
+
+# Links in every email's footer. Both are optional: without unsubscribe_url,
+# readers unsubscribe by email (a prefilled mailto to the sender address) and
+# you add them to the "수신거부" worksheet by hand.
+newsletter:
+  signup_url: ""       # the sign-up Google Form, shown as "팀 변경"
+  unsubscribe_url: ""  # an unsubscribe Form link; "{email}" is replaced with the reader's address

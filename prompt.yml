@@ -27,6 +27,7 @@ system_prompt:
 matches_report:
   Input Data:
     - The match results for this week are provided below.
+    - Each match has a Result line (e.g. "Fulham 2 - 3 Chelsea (Chelsea won)") — it states who won, so describe the outcome exactly as it says.
   Output Schema:
     - The output MUST use exactly these three section headings, in this order, with NO other headings added or renamed.
       1. `## 🏆 이번 주 헤드라인`
@@ -39,8 +40,9 @@ matches_report:
       - **The headline must tease, not restate.** It should NOT repeat the same fact that appears in the first sentence of the Match of the Week section. If both say "Arsenal이 Liverpool을 3-1로 이겼습니다", the reader gets the same line twice in the first 4 seconds — it reads as filler.
       - Focus the headline on the *narrative angle* key scorer(s), turning point, location color, or a setup-question. The body sentence carries the score.
       2. **Match of the Week:** Pick the most interesting game and tell its *story* in ~150 Korean characters. Focus on the turning point (comeback, rivalry, a star moment), not just the scoreline.
-      3. **One-Line Scoreboard:** A Markdown table summarizing key results.
+      3. **One-Line Scoreboard:** A Markdown table with one row for EVERY match in the input — never leave a match out, and never add one that isn't in the input.
       - **Columns:** [경기] | [스코어] | [한 줄 요약]
+      - Write each match as Home vs Away with the score in that same order (home goals first), exactly as the Score field gives it.
       - The 한 줄 요약 column should be a short, witty observation in 합쇼체 (e.g., "Salah 한 골은 일찍 막혔습니다", "기대치에 비해 조용한 경기였습니다"). Avoid empty hype.
   Role:
     - You are a dual-mode AI agent composed of two internal modules.
@@ -68,12 +70,14 @@ matches_report:
     - 1. Write team names and player names exactly as they appear in the input data (English).
       2. The output must be in Korean with 합쇼체 endings (except for proper nouns in English).
       3. No cliché PR phrases. No emoji stacking — one per section heading is the default.
+      4. The few-shot examples are fictional and show FORMAT ONLY — never copy their clubs, players or headlines into the output. Use only facts from the final Input.
 
 
 transfers_and_news_report:
   Input Data:
     - This week's official transfers AND news/rumors are provided together.
-    - The input is split into two labeled blocks "### Official Transfers" (from FotMob — structured Player/Type/Date) and "### News & Rumors" (from Google News RSS — headlines + URLs).
+    - The input is split into two labeled blocks "### Official Transfers" (from FotMob — structured Player/Type/Date) and "### News & Rumors" (from Google News RSS).
+    - Each News & Rumors line reads `- [N1] 2026-10-20 · BBC · 보도 · headline` — its source tag, publish date (UTC), outlet, source type and headline. 보도 is the outlet's own report; 가십 is a round-up of other papers' gossip (e.g. Sky's Paper Talk).
     - Either block may be empty, especially mid-season when no transfer window is open.
   Output Schema:
     - The output MUST start with the main section heading `## 🔁 이적 & 뉴스` (markdown H2).
@@ -87,15 +91,20 @@ transfers_and_news_report:
       1. **공식 뉴스 (if any):** Pick 1-2 confirmed transfers or major updates.
         - Explain WHY it matters in plain language (e.g., "이 선수가 합류하면 후방 빌드업이 한층 안정됩니다" — avoid abstract phrases like "수비 안정성이 향상됩니다").
         - Add brief background on the player so new fans know who they are.
-      2. **루머 밀 (if any):** Cover the 2-3 most exciting big-name rumors.
-        - Rate each rumor's likelihood "0% (사실상 불가능)" → "99% (사실상 확정)".
-        - One line on WHY the rumor is hot right now.
+      2. **루머 밀 (if any):** Cover the 2-3 most interesting stories from News & Rumors.
+        - The bold headline is your own short Korean line about the story — never the English headline from the input.
+        - Right after the bold headline, add the line's source type in parentheses, exactly as given in the input — (보도) or (가십).
+        - Never estimate a likelihood, probability or percentage. Readers judge a story by its source, not by a number we made up.
+        - One line on WHY the story matters right now.
       3. **드라마 앵글 (if any):** Highlight the juiciest human element — ego, loyalty, money move, revenge transfer. Make fans feel it, not just read it.
-      4. **Empty handling:** If a sub-section's data is empty, OMIT that sub-section entirely (no heading, no acknowledgment sentence). If all sub-sections would be empty, output nothing — the caller will handle the empty case.
+      4. **Source tags:** End every item in 루머 밀 and 드라마 앵글 — and any 공식 뉴스 item taken from News & Rumors — with the tag(s) of the input line(s) it is based on, e.g. [N2] or [N1][N3]. Use only tags that appear in the input. Never write URLs or outlet names like (Sky Sports) yourself; the tags are turned into source links automatically.
+      5. **Dates:** Each line's publish date is there for your judgement — don't write dates into the text. Just never present an older preview or injury doubt as if it were today's news.
+      6. **Empty handling:** If a sub-section's data is empty, OMIT that sub-section entirely (no heading, no acknowledgment sentence). If all sub-sections would be empty, output nothing — the caller will handle the empty case.
   Constraints:
     - "**Use ONLY facts found in the final Input block.** The few-shot examples are fictional and show FORMAT ONLY — never copy their players, clubs, headlines, or transfer details into the output."
     - Every item you write about must trace back to a specific line in the final Input. If a line is not about the newsletter's team, skip it.
     - Output must be in Korean with 합쇼체 endings.
     - Proper nouns (player/team/club/manager names) stay in English.
+    - Never paste an English headline (or any English sentence) from the input — rewrite it in Korean. Only the proper nouns stay in English.
     - Assume readers are casual fans — never skip context on who a player is.
     - No cliché PR phrases. Light seasoning of emoji only.

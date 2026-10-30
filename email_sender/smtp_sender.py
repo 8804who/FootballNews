@@ -1,5 +1,6 @@
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from email.utils import formataddr
 
 import smtplib
 
@@ -37,7 +38,11 @@ EMAIL_STYLES = """
              text-align: left; white-space: nowrap; }
   .wrap td { border-bottom: 1px solid #d8d2c4; padding: 12px; text-align: left;
              vertical-align: top; }
+  .wrap .footer { margin-top: 32px; padding-top: 14px; border-top: 1px dotted #b8ac8e; }
+  .wrap .footer p { font-size: 13px; line-height: 1.6; margin: 0 0 6px; }
 """
+
+SENDER_NAME = "FootballNews"
 
 
 class SMTPSender(EmailSender):
@@ -47,23 +52,33 @@ class SMTPSender(EmailSender):
         self.smtp_username = SMTP['USERNAME']
         self.smtp_password = SMTP['PASSWORD']
 
-    def send_email(self, to: str, subject: str, body: str):
-        message = MIMEMultipart()
-        message['From'] = self.smtp_username
+    def build_message(self, to: str, subject: str, body: str, footer: str = None, headers: dict = None):
+        # Plain-text + HTML alternatives: HTML-only mail is a spam signal, and
+        # the markdown reads fine as text.
+        message = MIMEMultipart('alternative')
+        message['From'] = formataddr((SENDER_NAME, self.smtp_username))
         message['To'] = to
         message['Subject'] = subject
-        html_body = self.convert_markdown_to_html(body, subject)
-        message.attach(MIMEText(html_body, 'html'))
-        text = message.as_string()
+        for name, value in (headers or {}).items():
+            message[name] = value
+        plain = f"{body}\n\n---\n{footer}" if footer else body
+        message.attach(MIMEText(plain, 'plain', 'utf-8'))
+        message.attach(MIMEText(self.convert_markdown_to_html(body, subject, footer), 'html', 'utf-8'))
+        return message
+
+    def send_email(self, to: str, subject: str, body: str, footer: str = None, headers: dict = None):
+        text = self.build_message(to, subject, body, footer, headers).as_string()
         server = smtplib.SMTP(self.smtp_server, self.smtp_port)
         server.starttls()
         server.login(self.smtp_username, self.smtp_password)
         server.sendmail(self.smtp_username, to, text)
         server.quit()
 
-    def convert_markdown_to_html(self, markdown_text: str, title: str = "FootballNews"):
+    def convert_markdown_to_html(self, markdown_text: str, title: str = "FootballNews", footer: str = None):
         md = MarkdownIt("commonmark").enable("table")
         body_html = md.render(markdown_text)
+        if footer:
+            body_html += f"<div class=\"footer\">\n{md.render(footer)}</div>\n"
         return (
             "<!doctype html>\n"
             "<html lang=\"ko\">\n"

@@ -1,0 +1,40 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  unittest:
+    runs-on: ubuntu-latest
+    # config.py needs these at import time. The tests never call OpenAI,
+    # Google or SMTP, so placeholders are enough (and no secret is exposed
+    # to pull requests).
+    env:
+      OPENAI_API_KEY: test
+      GOOGLE_CLOUD_EMAIL: test@example.com
+      GOOGLE_CLOUD_SPREADSHEET_URL: https://docs.google.com/spreadsheets/d/test
+      SMTP_USERNAME: test@example.com
+      SMTP_PASSWORD: test
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.12
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      # Includes tests/test_golden.py: real past defects the evaluation must
+      # keep catching.
+      - name: Run tests
+        run: |
+          python -m unittest discover -s tests

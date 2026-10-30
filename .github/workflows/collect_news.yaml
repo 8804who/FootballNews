@@ -5,6 +5,10 @@ on:
     - cron: '30 0 * * *' # 09:30 KST
   workflow_dispatch:
 
+permissions:
+  contents: read
+  actions: write # lets Monday's run start generate_newsletter
+
 jobs:
   collect_news:
     runs-on: ubuntu-24.04
@@ -14,6 +18,7 @@ jobs:
       GOOGLE_CLOUD_SPREADSHEET_URL: ${{ secrets.GOOGLE_CLOUD_SPREADSHEET_URL }}
       SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
       SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+      ALERT_EMAIL: ${{ secrets.ALERT_EMAIL }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -47,3 +52,21 @@ jobs:
           if [ -d "datas/news_rss/$(date +%Y%m%d)" ]; then
             gcloud storage cp -r datas/news_rss/$(date +%Y%m%d) gs://my-football-news/football-news/datas/news_rss/
           fi
+
+      # generate_newsletter has no schedule of its own. Starting it from here
+      # means it can only run after the weekend's matches were collected —
+      # two independent crons, each firing hours late, never guaranteed that.
+      - name: Start this week's newsletter (Mondays)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "$(date -u +%u)" = "1" ]; then
+            gh workflow run generate_newsletter.yaml --repo "${{ github.repository }}" -f send_after=true
+          else
+            echo "Not Monday (UTC) — no newsletter today."
+          fi
+
+      - name: Alert on failure
+        if: failure()
+        run: |
+          python notify.py --subject "collect_news failed" --body "The next run re-collects the last 3 days, so no data is lost if it succeeds. On a Monday, this week's newsletter is not generated until a run succeeds: re-run collect_news (it starts the newsletter on Mondays), or run generate_newsletter with send_after. ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"

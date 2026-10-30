@@ -16,3 +16,6 @@ api.yml
 gen-lang-client.json
 CLAUDE.md
 .gstack/
+
+# evaluate/harness.py outputs
+evaluate/runs/
