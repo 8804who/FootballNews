@@ -26,7 +26,7 @@ else:
         "USERNAME": os.environ["SMTP_USERNAME"],
         "PASSWORD": os.environ["SMTP_PASSWORD"],
     }
-    # Where failure / held-edition alerts go (notify.py); defaults to the sender.
+    # Where workflow-failure alerts go (notify.py); defaults to the sender.
     ALERT_EMAIL = os.environ.get("ALERT_EMAIL") or SMTP["USERNAME"]
 
 ### EXAMPLE ###

@@ -15,4 +15,4 @@ SMTP:
   USERNAME: you@gmail.com            # Gmail address newsletters are sent from
   PASSWORD: your-16-char-app-password  # Gmail App Password, not your account password
 
-ALERT_EMAIL: you@gmail.com           # optional — where failure / held-edition alerts go (defaults to SMTP.USERNAME)
+ALERT_EMAIL: you@gmail.com           # optional — where workflow-failure alerts go (defaults to SMTP.USERNAME)

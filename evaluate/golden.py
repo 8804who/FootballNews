@@ -12,7 +12,7 @@ catching a known problem fails the tests (CI runs them on every push).
         --why "Chelsea won 3-2 at Fulham; the edition printed 'Chelsea vs Fulham 2-3'"
 
 Then write the case's "expect" block by hand (see the existing cases). Keys:
-  hold (bool), problems / warnings (substrings that must appear in the gate's
+  flagged (bool), problems / warnings (substrings that must appear in the gate's
   findings), metric_min / metric_max ({metric: bound}), facts_failed
   (substrings of failed match-fact claims). Add --also for other clubs whose
   sources a check needs (the "only in another club's sources" check).

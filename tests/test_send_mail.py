@@ -51,9 +51,10 @@ class SendNewslettersTest(unittest.TestCase):
         self.folder.mkdir(parents=True)
         for team in ("Arsenal", "Chelsea"):
             (self.folder / f"newsletter_{team}.md").write_text(f"# {team} · 주간 뉴스레터\n본문", encoding="utf-8")
+        # Chelsea fails a check, which must not stop its email.
         (self.folder / "gate.json").write_text(json.dumps({"teams": {
-            "Arsenal": {"hold": False, "problems": [], "warnings": []},
-            "Chelsea": {"hold": True, "problems": ["missing from the scoreboard"], "warnings": []},
+            "Arsenal": {"flagged": False, "problems": [], "warnings": []},
+            "Chelsea": {"flagged": True, "problems": ["missing from the scoreboard"], "warnings": []},
         }}), encoding="utf-8")
         self.sheet = FakeSheet([
             signup("Arsenal", "a1@example.com"),
@@ -70,11 +71,12 @@ class SendNewslettersTest(unittest.TestCase):
     def send(self, sender, **kwargs):
         return send_mail.send_newsletters(RUN, sheet=self.sheet, sender=sender, **kwargs)
 
-    def test_each_reader_once_without_unsubscribed_or_held_teams(self):
+    def test_each_reader_once_without_unsubscribed(self):
         sender = FakeSender()
         self.assertEqual(self.send(sender), [])
-        self.assertEqual([s["to"] for s in sender.sent], ["a1@example.com"])
-        self.assertEqual(sender.sent[0]["subject"], "[FootballNews] Arsenal 주간 뉴스레터 (2026-10-19 ~ 2026-10-25)")
+        self.assertEqual(sorted(s["to"] for s in sender.sent), ["a1@example.com", "c1@example.com"])
+        arsenal = next(s for s in sender.sent if s["to"] == "a1@example.com")
+        self.assertEqual(arsenal["subject"], "[FootballNews] Arsenal 주간 뉴스레터 (2026-10-19 ~ 2026-10-25)")
 
     def test_a_rerun_emails_nobody_twice(self):
         self.send(FakeSender())
@@ -90,9 +92,9 @@ class SendNewslettersTest(unittest.TestCase):
         self.send(retry)
         self.assertEqual([s["to"] for s in retry.sent], ["a1@example.com"])
 
-    def test_a_held_team_can_be_forced(self):
+    def test_an_edition_that_fails_a_check_is_still_sent(self):
         sender = FakeSender()
-        self.send(sender, forced=["chelsea"])
+        self.send(sender)
         self.assertIn("c1@example.com", [s["to"] for s in sender.sent])
 
     def test_dry_run_sends_and_records_nothing(self):
@@ -111,7 +113,7 @@ class SendNewslettersTest(unittest.TestCase):
         (self.folder / "newsletter_Arsenal.md").unlink()
         sender = FakeSender()
         problems = self.send(sender)
-        self.assertEqual(sender.sent, [])
+        self.assertEqual([s["to"] for s in sender.sent], ["c1@example.com"])  # other clubs still go out
         self.assertTrue(any("no newsletter file" in p for p in problems))
 
 

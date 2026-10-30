@@ -13,8 +13,9 @@ import google.auth
 from config import TEAMS
 from google_sheet_parser import EMAIL_COLUMN, TEAM_COLUMN, google_sheet_parser
 from dashboard.render import render
+from evaluate import gate
 from evaluate.evaluate_main import LABELS, METRICS_VERSION, WEIGHTS, evaluate_newsletter, render_report_json
-from evaluate.utils import NEWSLETTER_ROOT
+from evaluate.utils import NEWSLETTER_ROOT, resolve_newsletter_token
 from team_names import canonical
 
 BUCKET_NAME = "my-football-news"
@@ -202,7 +203,28 @@ def shape_eval_current(summary: dict, date_str: str) -> dict:
     }
 
 
-def extract_editions(date_str: str):
+def load_checks(date_str: str) -> dict:
+    """evaluate/gate.py's findings per club ({team: {problems, warnings}}).
+    CI writes gate.json next to the newsletters; a week without one (before
+    Oct 30 2026) is checked now. Report-only: no edition was held for these."""
+    path = NEWSLETTER_ROOT / date_str / "gate.json"
+    try:
+        if path.exists():
+            return json.loads(path.read_text(encoding="utf-8")).get("teams", {})
+        return gate.run_gate(date_str)["teams"]
+    except Exception as e:
+        print(f"⚠ Could not load the edition checks for {date_str}: {e}")
+        return {}
+
+
+def checks_note(checks: dict) -> str:
+    if not checks:
+        return ""
+    flagged = sum(1 for c in checks.values() if c.get("problems"))
+    return f"{flagged} of {len(checks)} flagged by the checks" if flagged else "all checks passed"
+
+
+def extract_editions(date_str: str, checks: dict = None):
     date_dir = NEWSLETTER_ROOT / date_str
     if not date_dir.exists():
         return [], None
@@ -224,7 +246,8 @@ def extract_editions(date_str: str):
             cells = [c.strip() for c in table_rows[2].split("|")[1:-1]]
             if len(cells) >= 2:
                 score_line = f"{cells[0]}  {cells[1]}"
-        editions.append((team, score_line or "", headline))
+        check = (checks or {}).get((resolve_newsletter_token(nf.stem) or "").replace("_", " "))
+        editions.append((team, score_line or "", headline, check))
     return editions, week_range
 
 
@@ -285,11 +308,13 @@ def main():
     eval_caveat = None
     editions = []
     editions_week = "no data yet"
+    checks = {}
     history = load_eval_history(client)
 
     if latest_date:
         summary = load_summary(client, latest_date) or run_evaluation(latest_date)
-        editions, week_range = extract_editions(latest_date)
+        checks = load_checks(latest_date)
+        editions, week_range = extract_editions(latest_date, checks)
         if week_range:
             editions_week = f"week of {week_range}"
         if summary and summary["overall_score"] is not None:
@@ -316,6 +341,7 @@ def main():
         "eval_caveat": eval_caveat,
         "editions": editions,
         "editions_week": editions_week,
+        "checks_note": checks_note(checks),
     }
 
     out_dir = Path("dist")

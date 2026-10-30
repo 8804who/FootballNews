@@ -171,20 +171,20 @@ class HarnessSummaryTest(unittest.TestCase):
         from evaluate import harness
         from evaluate.evaluate_main import WEIGHTS
 
-        def task(run, overall, held=False, model="gpt-5-mini"):
+        def task(run, overall, flagged=False, model="gpt-5-mini"):
             components = {k: overall for k in WEIGHTS}
             evaluation = {"overall": overall, "components": components, "faithfulness": {"calls": []}}
-            gate_result = {"hold": held, "problems": ["wrong score"] if held else [], "warnings": []}
+            gate_result = {"flagged": flagged, "problems": ["wrong score"] if flagged else [], "warnings": []}
             return {"run": run, "date": "20261019", "team": "Arsenal", "error": None, "eval": evaluation,
                     "gate": gate_result, "calls": [{"model": model, "input_tokens": 1000, "output_tokens": 500, "seconds": 2}]}
 
         runs = [{"name": "baseline", "model": "gpt-5-mini"}, {"name": "nano", "model": "gpt-5.4-nano"}]
         summaries = {"baseline": harness._summarize([task("baseline", 0.9)]),
-                     "nano": harness._summarize([task("nano", 0.8, held=True, model="gpt-5.4-nano")])}
-        self.assertEqual(len(summaries["nano"]["held"]), 1)
+                     "nano": harness._summarize([task("nano", 0.8, flagged=True, model="gpt-5.4-nano")])}
+        self.assertEqual(len(summaries["nano"]["flagged"]), 1)
         report = harness.render_report(runs, summaries, ["20261019"], ["Arsenal"], False, None)
         self.assertIn("80.0% (-10.0)", report)
-        self.assertIn("| Held by the pre-send check | 0 / 1 | 1 / 1 |", report)
+        self.assertIn("| Flagged by the edition checks | 0 / 1 | 1 / 1 |", report)
 
 
 class HistoryVersionTest(unittest.TestCase):

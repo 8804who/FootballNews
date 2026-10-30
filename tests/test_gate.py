@@ -48,49 +48,49 @@ class CheckEditionTest(unittest.TestCase):
     def check(self, text=EDITION, own=ARSENAL, others=None):
         return gate.check_edition("Arsenal", RUN, text, {"Arsenal": own, **(others or {})})
 
-    def assertHeldFor(self, result, fragment):
-        self.assertTrue(result["hold"])
+    def assertFlaggedFor(self, result, fragment):
+        self.assertTrue(result["flagged"])
         self.assertTrue(any(fragment in p for p in result["problems"]), result["problems"])
 
     def test_a_correct_edition_passes(self):
         result = self.check()
-        self.assertFalse(result["hold"], result["problems"])
+        self.assertFalse(result["flagged"], result["problems"])
 
-    def test_a_wrong_score_holds(self):
-        self.assertHeldFor(self.check(EDITION.replace("| 2-2 |", "| 2-1 |")), "wrong score")
+    def test_a_wrong_score_is_flagged(self):
+        self.assertFlaggedFor(self.check(EDITION.replace("| 2-2 |", "| 2-1 |")), "wrong score")
 
-    def test_last_weeks_match_shown_again_holds(self):
+    def test_last_weeks_match_shown_again_is_flagged(self):
         repeat = EDITION.replace("| Rice가 해결했습니다 |", "| Rice가 해결했습니다 |\n| Nottm Forest vs Arsenal | 0-1 | 결승골 |")
-        self.assertHeldFor(self.check(repeat), "not in this week's source")
+        self.assertFlaggedFor(self.check(repeat), "not in this week's source")
 
-    def test_a_match_missing_from_the_scoreboard_holds(self):
+    def test_a_match_missing_from_the_scoreboard_is_flagged(self):
         own = dict(ARSENAL, matches=ARSENAL["matches"] + [("Arsenal", "Burnley", 2, 0)])
-        self.assertHeldFor(self.check(own=own), "missing from the scoreboard")
+        self.assertFlaggedFor(self.check(own=own), "missing from the scoreboard")
 
-    def test_a_finished_fixture_that_was_never_collected_holds(self):
+    def test_a_finished_fixture_that_was_never_collected_is_flagged(self):
         # Oct 26: the weekend's collection failed and the edition went out anyway.
         own = dict(ARSENAL, fixtures=[{
             "utc_time": "2026-10-25T14:00:00.000Z", "finished": True, "cancelled": False,
             "score": "2 - 1", "home": "Arsenal", "away": "Burnley", "tournament": "Premier League",
         }])
-        self.assertHeldFor(self.check(own=own), "never collected")
+        self.assertFlaggedFor(self.check(own=own), "never collected")
 
-    def test_names_from_the_few_shot_examples_hold(self):
+    def test_names_from_the_few_shot_examples_are_flagged(self):
         leak = EDITION + "- **Jordan Placeholder 영입전** (보도) — 설명입니다. ([BBC](https://news.example/1))\n"
-        self.assertHeldFor(self.check(leak), "few-shot")
+        self.assertFlaggedFor(self.check(leak), "few-shot")
 
-    def test_a_name_only_in_another_clubs_sources_holds(self):
+    def test_a_name_only_in_another_clubs_sources_is_flagged(self):
         # Oct 19: Man City rumors (Elliot Anderson, Pep Guardiola) in Arsenal's edition.
         leak = EDITION + "- **Elliot Anderson 영입 경쟁** (보도) — 설명입니다. ([BBC](https://news.example/1))\n"
         city = sources(words={"elliot", "anderson"})
-        self.assertHeldFor(self.check(leak, others={"Manchester_City": city}), "only in Manchester City's")
+        self.assertFlaggedFor(self.check(leak, others={"Manchester_City": city}), "only in Manchester City's")
 
-    def test_a_link_to_a_headline_this_club_never_had_holds(self):
-        self.assertHeldFor(self.check(EDITION.replace("news.example/1", "news.example/99")), "source link")
+    def test_a_link_to_a_headline_this_club_never_had_is_flagged(self):
+        self.assertFlaggedFor(self.check(EDITION.replace("news.example/1", "news.example/99")), "source link")
 
     def test_names_in_no_source_only_warn(self):
         result = self.check(EDITION.replace("측면 보강이", "Mikel Arteta 감독의 측면 보강이"))
-        self.assertFalse(result["hold"], result["problems"])
+        self.assertFalse(result["flagged"], result["problems"])
         self.assertTrue(any("Mikel Arteta" in w for w in result["warnings"]))
 
 

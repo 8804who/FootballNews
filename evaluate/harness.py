@@ -18,7 +18,7 @@ Output (gitignored): evaluate/runs/{run}/{date}/newsletter_{team}.md and
 usage.json, plus evaluate/runs/report.md and report.json.
 
 Generation isn't deterministic, so a difference of a point or two between
-runs on 12 editions is noise; look for holds, failed facts and cost.
+runs on 12 editions is noise; look for flags, failed facts and cost.
 """
 
 import argparse
@@ -100,7 +100,7 @@ def _summarize(tasks: List[Dict]) -> Dict:
         "overall": mean([t["eval"]["overall"] for t in scored if t["eval"]["overall"] is not None]),
         "metrics": {k: mean([t["eval"]["components"][k] for t in scored if t["eval"]["components"][k] is not None])
                     for k in WEIGHTS},
-        "held": [f"{t['date']} {t['team']}: {'; '.join(t['gate']['problems'])}" for t in scored if t["gate"]["hold"]],
+        "flagged": [f"{t['date']} {t['team']}: {'; '.join(t['gate']['problems'])}" for t in scored if t["gate"]["flagged"]],
         "warnings": [f"{t['date']} {t['team']}: {w}" for t in scored for w in t["gate"]["warnings"]],
         "generation": cost.summarize_calls([c for t in tasks for c in t["calls"]]),
         "judge": cost.summarize_calls([c for t in scored for c in t["eval"]["faithfulness"]["calls"]]),
@@ -141,7 +141,7 @@ def render_report(runs: List[dict], summaries: Dict[str, Dict], dates: List[str]
     lines += [row(LABELS[k], [_delta(summaries[n]["metrics"][k], base["metrics"][k]) for n in names]) for k in WEIGHTS]
     gen = lambda n: summaries[n]["generation"]
     lines += [
-        row("Held by the pre-send check", [f"{len(summaries[n]['held'])} / {summaries[n]['editions']}" for n in names]),
+        row("Flagged by the edition checks", [f"{len(summaries[n]['flagged'])} / {summaries[n]['editions']}" for n in names]),
         row("Pre-send warnings", [str(len(summaries[n]["warnings"])) for n in names]),
         row("Errors", [str(len(summaries[n]["errors"])) for n in names]),
         row("Generation cost", [("unpriced" if gen(n)["cost_usd"] is None else f"${gen(n)['cost_usd']:.3f}") for n in names]),
@@ -161,7 +161,7 @@ def render_report(runs: List[dict], summaries: Dict[str, Dict], dates: List[str]
     lines += ["", "## What the checks found", ""]
     for n in names:
         s = summaries[n]
-        found = [f"- ⛔ held — {h}" for h in s["held"]] + [f"- ⚠ {w}" for w in s["warnings"]] + [f"- ✗ error — {e}" for e in s["errors"]]
+        found = [f"- ⛔ flagged — {h}" for h in s["flagged"]] + [f"- ⚠ {w}" for w in s["warnings"]] + [f"- ✗ error — {e}" for e in s["errors"]]
         lines += [f"### {n}", ""] + (found or ["- nothing"]) + [""]
     lines += [f"Outputs: `evaluate/runs/<run>/<date>/newsletter_<team>.md`. Judge cost per run: "
               + ", ".join(f"{n} ${summaries[n]['judge']['cost_usd'] or 0:.3f}" for n in names) + "."]

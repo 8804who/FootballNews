@@ -1,4 +1,5 @@
 import json
+from html import escape
 
 STYLE = """
   @font-face { font-family: 'Oswald'; font-weight: 500; font-style: normal; font-display: swap; src: url('assets/fonts/oswald-500.woff2') format('woff2'); }
@@ -140,6 +141,13 @@ STYLE = """
   .edition-team { font-family: 'Oswald', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--eyebrow-accent); border-bottom: 2px solid var(--accent); display: inline-block; padding-bottom: 4px; margin-bottom: 8px; }
   .edition-score { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--ink-muted); margin-bottom: 6px; }
   .edition-headline { font-size: 13.5px; line-height: 1.55; font-weight: 600; }
+  .edition-checks { list-style: none; margin: 10px 0 0; padding: 8px 0 0; border-top: 1px solid var(--border); font-size: 12px; line-height: 1.5; }
+  .edition-checks li { margin: 0 0 4px; padding-left: 8px; border-left: 3px solid var(--status-warn); overflow-wrap: anywhere; }
+  .edition-checks li:last-child { margin-bottom: 0; }
+  .edition-checks li.crit { border-left-color: var(--status-crit); }
+  .edition-checks li.good { border-left-color: var(--status-good); color: var(--ink-muted); }
+  .edition-checks li.crit strong { color: var(--status-crit); }
+  .edition-checks li.warn strong { color: var(--status-warn); }
 
   footer { margin-top: 8px; padding-top: 16px; border-top: 1px solid var(--border); font-size: 11.5px; color: var(--ink-muted); }
   footer p { margin: 0 0 6px; }
@@ -209,16 +217,30 @@ def _scorecard_html(metrics):
     return "\n".join(rows)
 
 
+def _checks_html(check):
+    """evaluate/gate.py's findings for one edition. Report-only: the edition
+    was sent either way."""
+    if check is None:
+        return ""
+    items = ([("crit", "Problem", p) for p in check.get("problems", [])]
+             + [("warn", "Warning", w) for w in check.get("warnings", [])])
+    if not items:
+        return '<ul class="edition-checks"><li class="good">All checks passed</li></ul>'
+    rows = "".join(f'<li class="{cls}"><strong>{label}</strong> {escape(text)}</li>' for cls, label, text in items)
+    return f'<ul class="edition-checks">{rows}</ul>'
+
+
 def _editions_html(editions):
     if not editions:
         return '<div class="eval-empty">No newsletter editions found yet.</div>'
     cards = []
-    for team, score_line, headline in editions:
+    for team, score_line, headline, check in editions:
         cards.append(f"""
         <div class="edition-card">
           <div class="edition-team">{team}</div>
           <div class="edition-score num">{score_line}</div>
           <div class="edition-headline">{headline}</div>
+          {_checks_html(check)}
         </div>""")
     return "\n".join(cards)
 
@@ -263,6 +285,8 @@ def render(data: dict) -> str:
     pipeline_pct = round(total_ok / total_runs * 100) if total_runs else 0
 
     editions_week = data.get("editions_week", "no data yet")
+    if data.get("checks_note"):
+        editions_week += f" &middot; {data['checks_note']}"
 
     html = f"""<!doctype html>
 <html lang="en">
@@ -331,7 +355,7 @@ def render(data: dict) -> str:
   </div>
 
   <footer>
-    <p>Subscriber counts read live from the "&#49888;&#52397;&#51088; &#47785;&#47197;" worksheet via <code>google_sheet_parser.py</code>. Pipeline runs from the GitHub Actions API. Evaluation scores from <code>evaluate/evaluate_main.py</code>.</p>
+    <p>Subscriber counts read live from the "&#49888;&#52397;&#51088; &#47785;&#47197;" worksheet via <code>google_sheet_parser.py</code>. Pipeline runs from the GitHub Actions API. Evaluation scores from <code>evaluate/evaluate_main.py</code>. Edition checks from <code>evaluate/gate.py</code>, report-only: every edition is sent either way.</p>
     <p>Rebuilds automatically after collect_news and generate_newsletter runs.</p>
   </footer>
 </div>

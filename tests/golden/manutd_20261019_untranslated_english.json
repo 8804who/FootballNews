@@ -5,7 +5,7 @@
  "also": [],
  "why": "English headline fragments pasted untranslated ('could be forced to accept small fee for wantaway teen'); Korean ratio 81%.",
  "expect": {
-  "hold": false,
+  "flagged": false,
   "warnings": [
    "Korean ratio"
   ],

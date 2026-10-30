@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """
-gate.py — hard checks that decide whether a club's edition may be sent.
+gate.py — yes/no checks on each club's edition, reported on the dashboard.
 
 The weighted metrics in evaluate_main.py follow quality over time. These are
-yes/no checks that a correct edition always passes, so any failure *holds*
-that club (send_mail.py skips it) instead of emailing readers something
+yes/no checks that a correct edition always passes. They hold nothing:
+every edition is sent, and a club that fails one is *flagged* — listed in
+the step summary and on the dashboard so the operator can see what went
 wrong:
 
   1. every match in this week's source is on the scoreboard, with its score
@@ -15,15 +16,13 @@ wrong:
   6. every source link points at one of this club's headlines this week
 
 Softer findings (names in no source at all, news items without a source
-link, a low Korean ratio) are recorded as warnings and hold nothing.
+link, a low Korean ratio) are recorded as warnings.
 
-Writes datas/newsletter/{date}/gate.json for send_mail.py. With --alert,
-also emails the operator (notify.py) when a club is held.
+Writes datas/newsletter/{date}/gate.json, which generate_dashboard.py shows.
 
 Usage
 -----
     python evaluate/gate.py --date 20261102
-    python evaluate/gate.py --date 20261102 --alert
 """
 
 import argparse
@@ -174,7 +173,7 @@ def check_edition(token: str, date: datetime, text: str, all_sources: Dict[str, 
     if not lang["passed"]:
         warnings.append(f"Korean ratio {lang['ratio']:.0%} (target {lang['target']:.0%})")
 
-    return {"hold": bool(problems), "problems": problems, "warnings": warnings}
+    return {"flagged": bool(problems), "problems": problems, "warnings": warnings}
 
 
 def run_gate(date_str: str) -> Dict:
@@ -191,28 +190,25 @@ def run_gate(date_str: str) -> Dict:
 
 
 def render_summary(result: Dict) -> str:
-    held = [t for t, r in result["teams"].items() if r["hold"]]
-    lines = [f"# Newsletter gate — {result['date']}", ""]
-    lines.append(f"**Held: {', '.join(held)}**" if held else "All editions passed.")
+    flagged = [t for t, r in result["teams"].items() if r["flagged"]]
+    lines = [f"# Edition checks — {result['date']}", ""]
+    lines.append(f"**Flagged: {', '.join(flagged)}**" if flagged else "All editions passed.")
     lines.append("")
     for team, r in result["teams"].items():
-        lines.append(f"## {'⛔' if r['hold'] else '✅'} {team}")
+        lines.append(f"## {'⛔' if r['flagged'] else '✅'} {team}")
         for p in r["problems"]:
             lines.append(f"- {p}")
         for w in r["warnings"]:
             lines.append(f"- ⚠ {w}")
         lines.append("")
-    if held:
-        lines.append("Held clubs were not emailed. To send one anyway after checking it: "
-                     "GitHub → Actions → send_mail → Run workflow, with `force_teams` set to the club.")
+    lines.append("Nothing is held: every edition is sent, and these results appear on the dashboard.")
     return "\n".join(lines) + "\n"
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Check each edition before it is sent.")
+    parser = argparse.ArgumentParser(description="Check each edition and record the results for the dashboard.")
     parser.add_argument("--date", default=datetime.now(timezone.utc).strftime("%Y%m%d"),
                         help="Newsletter folder to check (YYYYMMDD); defaults to today (UTC)")
-    parser.add_argument("--alert", action="store_true", help="Email the operator if any club is held")
     args = parser.parse_args()
 
     result = run_gate(args.date)
@@ -228,16 +224,6 @@ def main() -> None:
     if os.environ.get("GITHUB_STEP_SUMMARY"):
         with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as f:
             f.write(summary)
-
-    held = [t for t, r in result["teams"].items() if r["hold"]]
-    if held and args.alert:
-        # A failed alert must not fail this step: gate.json is already written,
-        # and the clubs that passed still have to be uploaded and sent.
-        try:
-            from notify import alert
-            alert(f"{args.date} 뉴스레터 발송 보류: {', '.join(held)}", summary)
-        except Exception as e:
-            print(f"⚠ Could not email the alert: {e}")
 
 
 if __name__ == "__main__":

@@ -24,8 +24,8 @@ scored as pass or fail. Generation tokens and cost come from usage.json.
 The metrics measure faithfulness to the source the model was given. If
 collection missed matches, an edition can score 100% and still leave out the
 weekend, so coverage (collected ÷ finished matches on FotMob's fixture list)
-is reported beside the score, not inside it; the pre-send gate holds such
-editions.
+is reported beside the score, not inside it; evaluate/gate.py flags such
+editions on the dashboard.
 
 Usage
 -----

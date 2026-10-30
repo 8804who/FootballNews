@@ -5,7 +5,7 @@
  "also": [],
  "why": "'Como vs Man United 4-1' is correct (FotMob's short name) and used to score 0%; 'Leeds vs Man United 1-1' is last week's match repeated.",
  "expect": {
-  "hold": true,
+  "flagged": true,
   "problems": [
    "Leeds vs Man United"
   ],

@@ -1,7 +1,6 @@
 """Email the operator (ALERT_EMAIL, defaulting to the sender address).
 
-CI calls this when a workflow fails; evaluate/gate.py calls alert() when it
-holds a club's edition.
+CI calls this when a workflow fails.
 
     python notify.py --subject "collect_news failed" --body "https://github.com/…"
 """

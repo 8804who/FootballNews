@@ -7,7 +7,7 @@
  ],
  "why": "Few-shot example text (De Bruyne transfer, Elliot Anderson and Pep Guardiola rumors) copied into Arsenal's edition; Anderson appears only in Man City's sources that week.",
  "expect": {
-  "hold": true,
+  "flagged": true,
   "problems": [
    "Elliot Anderson isn't in this club's sources"
   ],

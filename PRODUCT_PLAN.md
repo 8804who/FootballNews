@@ -16,7 +16,7 @@
      - a repeat of the previous week's match;
      - an edition missing the whole weekend round;
      - one result printed backwards.
-   - All of these now have a fix in code, plus a pre-send check that holds a club's email if anything like it happens again.
+   - All of these now have a fix in code, plus checks on every edition that show on the dashboard if anything like it happens again (report-only since Oct 31: they don't stop the email).
 2. **The eval caught the leak every week, and nobody could see it.**
    - It flagged "Kevin De Bruyne" in Arsenal, Liverpool and Chelsea editions.
    - Those flags sat next to false alarms like "Sky Sports", "Champions League" and "Man Utd".
@@ -40,8 +40,8 @@ Every "Broken" item in §1 that code can fix is now fixed and verified. The chan
 | # | Problem | Status | What fixed it |
 | --- | --- | --- | --- |
 | R1 | Other clubs' news in your club's edition | ✅ Fixed at the cause | The model was answering a few-shot *example* instead of the real input, because everything was one long string. Now the examples are separate, labelled chat turns, and all of them are fictional. The gate holds any edition containing an example name, or a name found only in another club's sources. |
-| R2 | Weekend round missing | ✅ Fixed | Collection looks back 3 days. Monday's newsletter only starts after a successful collection. The gate holds a club if FotMob's fixture list shows a finished match that was never collected. |
-| R3 | Last week's match shown again | ✅ Fixed | Editions pick matches by kickoff time (Monday 00:00 → Monday 00:00 UTC), not by collection folder. The gate holds any scoreboard row that isn't in the week's source. |
+| R2 | Weekend round missing | ✅ Fixed | Collection looks back 3 days. Monday's newsletter only starts after a successful collection. The checks flag a club if FotMob's fixture list shows a finished match that was never collected. |
+| R3 | Last week's match shown again | ✅ Fixed | Editions pick matches by kickoff time (Monday 00:00 → Monday 00:00 UTC), not by collection folder. The checks flag any scoreboard row that isn't in the week's source. |
 | R4 | Old news presented as current | ✅ Fixed for new data | RSS now stores publish times. Headlines from outside the week, and previews of matches that have already been played, are dropped. Older files fall back to folder dates. |
 | R5 | Invented precision | ✅ Fixed | No percentages. Each item carries its source type (보도 / 가십). Club landing pages and live blogs are filtered out before the model sees them. |
 | R6 | Nothing to click | ✅ Fixed | The model cites headlines as `[N1]`; code swaps the tags for links. The gate checks that every link belongs to this club's headlines. |
@@ -49,10 +49,10 @@ Every "Broken" item in §1 that code can fix is now fixed and verified. The chan
 | R8 | No unsubscribe, unclear sender | ✅ Code done · ⏳ form edits are yours | The sender shows as "FootballNews". Every email has a footer (why you get this · 수신거부 · 팀 변경 · 의견), a `List-Unsubscribe` header and a plain-text part. Addresses in a `수신거부` worksheet are never emailed. |
 | R9 | Silence after sign-up | 🟡 Partly | Team answers resolve through aliases ("TottenhamHotspur", "Spurs", "토트넘"). An answer that matches no club is reported instead of silently dropped. The welcome email is still in Next. |
 | O1–O3 | Eval false alarms | ✅ Fixed | Score matching understands aliases. Competitions, outlets and our own clubs no longer count as people. A name followed by a Korean particle is read whole. The Korean ratio is measured without the English names the style guide requires (target 95%). |
-| O4 | Eval never gates | ✅ Fixed | `evaluate/gate.py` runs yes/no checks before sending. A club that fails is held, and you get an email explaining why. |
+| O4 | Eval never gates | ✅ Changed by your decision (Oct 31) | `evaluate/gate.py` runs yes/no checks on every edition. It first held failing clubs; now it's report-only: every edition is sent and the results appear on its dashboard card. |
 | O5 | A green job doesn't mean delivered | ✅ Fixed | `send_mail` fails the run on any failed send or missing file, instead of sending a blank email. `sent.json` makes a re-run skip everyone who already got the edition. |
 | O6 | Workflows chained by the clock | ✅ Fixed | collect → (Mondays) generate → send, each started by the one before. |
-| O7 | No alerting | ✅ Fixed | Every workflow emails you when it fails (`notify.py`). The gate emails you when it holds a club. |
+| O7 | No alerting | ✅ Fixed | Every workflow emails you when it fails (`notify.py`). Content problems show on the dashboard instead of in an email. |
 | O8 | Docs and dashboard drift | ✅ Fixed | The dashboard legend is built from the real weights, news grounding is shown, and its eval now loads RSS. README, README.ko and CLAUDE.md are updated. |
 
 ### Found while fixing
@@ -249,7 +249,7 @@ Not serving, for now:
 - **P1:** When I've missed the weekend's matches, I want a trustworthy three-minute rundown of my club in Korean, so I can talk about it on Monday.
 - **P3:** When I'm new to a club, I want each week explained with context on who's who, so I can feel part of the fandom.
 - **P2:** When rumors flood my feed, I want only the credible ones, linked to the source, so I know what's real.
-- **Positioning line:** *"내 팀 소식만, 믿을 만한 출처로, 월요일 아침 3분."* The "믿을 만한" claim is now backed by source links and the pre-send checks; earn it for a few weeks before saying it publicly.
+- **Positioning line:** *"내 팀 소식만, 믿을 만한 출처로, 월요일 아침 3분."* The "믿을 만한" claim is now backed by source links and the edition checks; earn it for a few weeks before saying it publicly.
 
 ### 5 · Strategic trade-offs
 
@@ -261,7 +261,7 @@ Not serving, for now:
 | Credible outlets only | More rumors | Communities already overflow with tabloid rumors; curation is the value |
 | A light, witty voice | Tactical depth | The target is light fans, and depth is covered elsewhere |
 | Email | An app or KakaoTalk (for now) | Zero distribution cost and nothing to install. Revisit if growth stalls |
-| Automation gated by checks | Fully hands-off, or fully manual | Send automatically when the checks pass; hold and alert you when they fail (now implemented) |
+| Automatic sending, checks on the dashboard | Holding failed clubs, or approving every send | Your call (Oct 31): an edition goes out whenever the pipeline runs without errors, and the checks report what was wrong afterwards |
 | Free | Paid or sponsored | There's no retention evidence yet, and ads bring 정보통신망법 §50 obligations |
 
 ### 6 · Key metrics (details in §4)
@@ -289,7 +289,7 @@ Not serving, for now:
 | Match data | Build (FotMob scraping), plus a bought fallback (API-Football; the IDs are already in `teams.yml`) | Medium | Backfill ✅; fallback Later |
 | News intake | Build (Google News RSS, 3 outlets) | Low | Timestamps, links ✅ |
 | Generation | Build (LangChain, chat-format few-shot) | Low | ✅ restructured; Next: 다음 경기 section |
-| Quality gate | Build (calibrated eval, hard checks, hold and alert) | Medium | ✅ |
+| Quality checks | Build (calibrated eval, yes/no checks shown on the dashboard) | Medium | ✅ |
 | Delivery | Gmail SMTP → buy an ESP API | Low → Medium | Next (tracking), Later (lists) |
 | Subscriber management | Google Form and Sheet → ESP lists | Low | Unsubscribe ✅; migrate Later |
 | Engagement measurement | Build a minimal version (feedback links), then buy (ESP analytics) | Low | Next |
@@ -311,7 +311,7 @@ Not a moat: the model, the scraping, the design.
 
 ### Strategic risks
 
-1. **Trust collapses.** A fan who watched the match spots a wrong, repeated or missing result and quietly stops opening. Now guarded by the pre-send checks; keep the gate precise so its holds stay credible.
+1. **Trust collapses.** A fan who watched the match spots a wrong, repeated or missing result and quietly stops opening. The checks now catch this, but on the dashboard after the email has gone out; keep them precise so a flag stays worth reading.
 2. **The source breaks.** FotMob scraping is unofficial and probably not permitted by their terms. A markup change or a block would kill the match section overnight. Fixture tests (TODOS #5) and an API fallback address this.
 3. **Building blind.** Without engagement data, you'll keep polishing what you can measure (the eval) instead of what readers value. Interviews and feedback links in Next address this.
 
@@ -343,7 +343,7 @@ Not a moat: the model, the scraping, the design.
 | Input | How it moves WER | Current | Target |
 | --- | --- | --- | --- |
 | **Active subscribers**: not unsubscribed and not bouncing | It sets the ceiling | 12 | 30 by the end of Next, 100+ Later |
-| **On-time complete editions**: % of club editions delivered by the promised time, with every finished match in the window, exactly once | The edition arrives when the reader needs it | Complete & once: guarded by the gate from Nov 2 · On time: 0 of 4 in October | 100% |
+| **On-time complete editions**: % of club editions delivered by the promised time, with every finished match in the window, exactly once | The edition arrives when the reader needs it | Complete & once: checked on the dashboard from Nov 2 · On time: 0 of 4 in October | 100% |
 | **Error-free editions**: % with zero hard-check failures | It keeps trust | Now measured: `gate.json` per edition (35 of 72 past editions would have failed) | 100%, with a monthly check by hand |
 | **Edition pull**: % of recipients who act (click, 👍/👎, reply) | It shows the edition was worth reading | Unknown | Set after a 4-week baseline |
 
@@ -384,7 +384,7 @@ Rejected candidates:
 | Outcome | Success metric | What was built | Status |
 | --- | --- | --- | --- |
 | **Every finished match appears exactly once** | 3 editions in a row with 0 missing and 0 repeated matches, checked against FotMob | `edition.py` selects by kickoff time; 3-day lookback; FotMob fixture list saved daily; the chain only generates after a successful Monday collection | ✅ Built · measure from Nov 2 |
-| **Nothing ships that the sources can't back** | 0 example, other-club or untraceable names, and 0 foreign links, in sent editions | Chat-format few-shot with fictional examples; `[N]` citations → links; `evaluate/gate.py` holds failing clubs | ✅ Built · replay: 35/72 past editions would have been held |
+| **Nothing ships that the sources can't back** | 0 example, other-club or untraceable names, and 0 foreign links, in sent editions | Chat-format few-shot with fictional examples; `[N]` citations → links; `evaluate/gate.py` flags failing clubs on the dashboard | ✅ Built (report-only since Oct 31) · replay: 35/72 past editions would have been flagged |
 | **The eval number means something** | Metric verdicts agree with checked reality | Alias-aware scores, person-only names, particle-safe regexes, Korean ratio without required names, RSS in the dashboard eval | ✅ Calibrated on 72 editions instead of hand-labelling 18 |
 | **Readers control their subscription** | Every email has a sender name, a line on why they get it, 수신거부 / 팀 변경 links; unsubscribes honored before the next send | Footer, `List-Unsubscribe`, plain-text part, `수신거부` worksheet filter, alias-matched team answers | ✅ Code · ⏳ form dropdown, consent text and `signup_url` are yours |
 | **You hear about failures before readers do** | An alert within 1 hour of any failure | `notify.py` on every workflow failure and every hold; `send_mail` exits non-zero on any failed send; `--dry-run`; `sent.json` prevents double sends | ✅ Built · a separate dead-man's switch for "nothing ran at all" is still open |
@@ -437,7 +437,7 @@ Rejected candidates:
 | An alert channel | You find out about failures first | Free | ✅ Email via `notify.py` (optionally set `ALERT_EMAIL`) |
 | An unsubscribe path, a footer and consent text | Trust, deliverability, and the notice-and-consent rules of 개인정보 보호법 (purpose, data collected, retention, right to refuse) | Free | ✅ Footer and filter · ⏳ consent text on the form (draft in Progress) |
 | Ground truth for the eval | Calibrating the metrics | Time | ✅ Replay of 72 editions; label by hand monthly from now on |
-| A 5-minute look whenever a club is held | You only review exceptions, not every week | Time | Ongoing |
+| A 5-minute look whenever the dashboard flags a club | You only review exceptions, not every week | Time | Ongoing |
 | An external scheduler | GitHub cron runs about 5 hours late | Cloud Scheduler free tier | Next |
 | An ESP account with an API and tracking | To measure the North Star now, and to manage lists at scale later | Free tier, then low $ | Next / Later |
 | Your own domain | A branded sender and DMARC alignment on the ESP | About $10–15 a year | Later |
@@ -449,8 +449,8 @@ Rejected candidates:
 
 | They need | Today | Status |
 | --- | --- | --- |
-| All of this week's results, each shown once | Kickoff-time editions; the gate holds gaps and repeats | ✅ |
-| Only their club's news, and only what's true | Chat-format examples; the gate holds leaks | ✅ |
+| All of this week's results, each shown once | Kickoff-time editions; the checks flag gaps and repeats on the dashboard | ✅ |
+| Only their club's news, and only what's true | Chat-format examples; the checks flag leaks on the dashboard | ✅ |
 | To know who's sending and how to leave | Sender name, footer, List-Unsubscribe | ✅ |
 | It on Monday morning | It arrives in the afternoon | Next |
 | The next kick-off in Korean time | Fixture list saved, section not built | Next |
@@ -488,8 +488,8 @@ Hypotheses to confirm or kill:
    - (b) a growing product with about 100 engaged readers;
    - (c) a portfolio piece about LLM evaluation.
 
-   **Recommendation: (b).** It forces you to measure outcomes, which this project lacks. Its calibrated eval and pre-send gate are also the best showcase for (c).
-2. **Gate mode — decided by implementation, change it if you disagree.** The pipeline now sends automatically when all hard checks pass and holds only the failing club. The alternative is approving every send yourself: a GitHub Environment with a required reviewer can pause the send job until you tap Approve.
+   **Recommendation: (b).** It forces you to measure outcomes, which this project lacks. Its calibrated eval and edition checks are also the best showcase for (c).
+2. **Gate mode — decided (Oct 31): report-only.** Every edition is sent when the pipeline runs without errors. The checks are shown on the dashboard and hold nothing. The trade-off: a wrong edition now reaches readers, and you find out from the dashboard afterwards. If that happens often, two options: hold failing clubs again, or approve each send yourself (a GitHub Environment with a required reviewer can pause the send job until you tap Approve).
 3. **Send time.** Either commit to Monday around 07:30 KST *(recommended; confirm it in the interviews)*, or keep the afternoon slot and skip the external scheduler.
 
 ---

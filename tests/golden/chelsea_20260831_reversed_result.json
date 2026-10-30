@@ -5,7 +5,7 @@
  "also": [],
  "why": "Chelsea won 3-2 at Fulham, but the scoreboard printed 'Chelsea vs Fulham 2-3 — 초반 리드에도 종료까지 지키지 못했습니다' (a loss). Sent to subscribers on Aug 31.",
  "expect": {
-  "hold": true,
+  "flagged": true,
   "problems": [
    "wrong score: Fulham vs Chelsea ended 2-3"
   ],

@@ -1,6 +1,6 @@
 # Few-shot examples. Every club, player, manager and headline in this file is
 # FICTIONAL and shows FORMAT ONLY: real names here used to leak into
-# subscribers' newsletters (Aug–Oct 2026). evaluate/gate.py holds any edition
+# subscribers' newsletters (Aug–Oct 2026). evaluate/gate.py flags any edition
 # that contains a name from this file, so keep them obviously made up.
 
 matches_report:

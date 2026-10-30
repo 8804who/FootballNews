@@ -5,7 +5,7 @@
  "also": [],
  "why": "'Nottm Forest vs Arsenal 0-1' (Oct 18) shown again a week after the Oct 19 edition covered it.",
  "expect": {
-  "hold": true,
+  "flagged": true,
   "problems": [
    "not in this week's source (repeat or invented): Nottm Forest vs Arsenal"
   ],

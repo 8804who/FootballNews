@@ -79,17 +79,15 @@ def _save_json(path: str, data: dict) -> None:
         json.dump(data, f, indent=1)
 
 
-def send_newsletters(run_date, dry_run=False, forced=(), sheet=google_sheet_parser, sender=smtp_sender):
+def send_newsletters(run_date, dry_run=False, sheet=google_sheet_parser, sender=smtp_sender):
     """Email each team's edition for `run_date` to its subscribers. Returns
-    the problems that should fail the run (send errors, missing files)."""
+    the problems that should fail the run (send errors, missing files).
+
+    evaluate/gate.py's checks don't stop a send: they're shown on the
+    dashboard. Only a missing file or a failed send is an error here."""
     today_str = run_date.strftime('%Y%m%d')
     start, end = edition.edition_window(run_date)
     folder = f"datas/newsletter/{today_str}"
-    forced = {t.strip().lower() for t in forced if t.strip()}
-
-    gate = _load_json(f"{folder}/gate.json").get("teams", {})
-    if not gate:
-        print("⚠ No gate.json for this date — sending without the pre-send checks.")
 
     # Recipients already sent this edition (sha256 per team), so a re-run
     # after a partial failure only reaches the ones that didn't get it.
@@ -105,13 +103,6 @@ def send_newsletters(run_date, dry_run=False, forced=(), sheet=google_sheet_pars
     failures = []
     for team in TEAMS:
         team_name = team["name"]
-
-        verdict = gate.get(team_name)
-        if verdict and verdict["hold"] and team_name.lower() not in forced:
-            print(f"[{team_name}] ⛔ Held by the pre-send check, not sent:")
-            for problem in verdict["problems"]:
-                print(f"    - {problem}")
-            continue
 
         subscribers = sheet.get_team_subscribers(team_name, records, unsubscribed)
         if not subscribers:
@@ -160,15 +151,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Email this week's newsletters to each team's subscribers")
     parser.add_argument("--date", help="Send the newsletters generated on this day (YYYYMMDD); defaults to today (UTC)")
     parser.add_argument("--dry-run", action="store_true", help="Print what would be sent, without sending anything")
-    parser.add_argument("--force-teams", default="",
-                        help="Comma-separated teams to send even though evaluate/gate.py held them")
     args = parser.parse_args()
 
     run_date = (
         datetime.strptime(args.date, "%Y%m%d").replace(tzinfo=timezone.utc)
         if args.date else datetime.now(timezone.utc)
     )
-    failures = send_newsletters(run_date, dry_run=args.dry_run, forced=args.force_teams.split(","))
+    failures = send_newsletters(run_date, dry_run=args.dry_run)
 
     if failures:
         print(f"\n{len(failures)} problem(s):")

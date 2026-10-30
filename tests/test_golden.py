@@ -45,8 +45,8 @@ class GoldenCasesTest(unittest.TestCase):
                 result, verdict = replay(case)
                 expect = case["expect"]
                 self.assertTrue(expect, "case has no expectations")
-                if "hold" in expect:
-                    self.assertEqual(verdict["hold"], expect["hold"], verdict["problems"])
+                if "flagged" in expect:
+                    self.assertEqual(verdict["flagged"], expect["flagged"], verdict["problems"])
                 for fragment in expect.get("problems", []):
                     self.assertTrue(any(fragment in p for p in verdict["problems"]), (fragment, verdict["problems"]))
                 for fragment in expect.get("warnings", []):

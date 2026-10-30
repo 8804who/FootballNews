@@ -5,7 +5,7 @@
  "also": [],
  "why": "Regenerated with the fixed pipeline (Oct 30): correct, sourced and linked. Everything must pass.",
  "expect": {
-  "hold": false,
+  "flagged": false,
   "metric_min": {
    "score_accuracy": 1.0,
    "match_facts": 1.0,

@@ -4,10 +4,6 @@ on:
   # Started by generate_newsletter once this week's newsletter is ready.
   workflow_dispatch:
     inputs:
-      force_teams:
-        description: Comma-separated teams to send even though the pre-send check held them
-        type: string
-        default: ""
       dry_run:
         description: Only print what would be sent
         type: boolean
@@ -41,8 +37,8 @@ jobs:
         run: |
           pip install -r requirements.txt
 
-      # Brings gate.json (which clubs are held) and sent.json (who already
-      # got this edition) down with the newsletters.
+      # Brings sent.json (who already got this edition) down with the
+      # newsletters.
       - name: Download current week's newsletters from GCS
         run: |
           DATE=$(date +%Y%m%d)
@@ -53,12 +49,10 @@ jobs:
 
       - name: send_mail
         env:
-          FORCE_TEAMS: ${{ inputs.force_teams }}
           DRY_RUN: ${{ inputs.dry_run }}
         run: |
           ARGS=()
           if [ "$DRY_RUN" = "true" ]; then ARGS+=(--dry-run); fi
-          if [ -n "$FORCE_TEAMS" ]; then ARGS+=(--force-teams "$FORCE_TEAMS"); fi
           python send_mail.py "${ARGS[@]}"
 
       - name: Record who was sent to

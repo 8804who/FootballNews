@@ -75,11 +75,12 @@ jobs:
             --output datas/evaluation/$(date +%Y%m%d)/report.md \
             --json-output datas/evaluation/$(date +%Y%m%d)/summary.json
 
-      # Writes gate.json: clubs that fail a hard check are not emailed by
-      # send_mail, and the operator gets an alert listing why.
-      - name: Check each edition before sending
+      # Writes gate.json for the dashboard. Report-only: a club that fails a
+      # check is still sent, so this step can't stop the newsletter either.
+      - name: Check each edition
+        continue-on-error: true
         run: |
-          python evaluate/gate.py --date $(date +%Y%m%d) --alert
+          python evaluate/gate.py --date $(date +%Y%m%d)
 
       # Copy into the parent prefix: copying onto an existing
       # newsletter/{date} prefix would nest a re-run under {date}/{date}/.

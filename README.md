@@ -8,9 +8,9 @@ Collects football club news, generates a newsletter, and sends it to subscribers
 
 1. **Collect** — Collect match reports and transfer news for configured Premier League clubs daily, from FotMob and Google News RSS. Each run looks 3 days back, so a day whose run failed is picked up by the next one.
 2. **Generate** — Every Monday, once that morning's collection succeeds, generate a newsletter per club for the week before it (Monday 00:00 UTC → Monday 00:00 UTC). Matches and headlines are picked by kickoff/publish time, so each appears in exactly one edition.
-3. **Evaluate** — Score each newsletter against its source data (scores, minute-by-minute match facts, each news item against the headline it links to, plus an LLM judge for meaning) and record tokens and cost. Then run hard pre-send checks: a club that fails one is held instead of sent, and the operator is emailed why.
-4. **Send** — Send the newsletter to subscribers, skipping held clubs, unsubscribed addresses and anyone who already received this edition.
-5. **Publish** — Generate and publish a dashboard for subscriber counts, workflow status, and evaluation score history.
+3. **Evaluate** — Score each newsletter against its source data (scores, minute-by-minute match facts, each news item against the headline it links to, plus an LLM judge for meaning) and record tokens and cost. Then run yes/no checks on each edition (wrong, missing or repeated matches, another club's news, foreign links). They hold nothing: the results go to the dashboard.
+4. **Send** — Send every club's newsletter to its subscribers, skipping unsubscribed addresses and anyone who already received this edition. Only a pipeline error (a failed step, a missing file, a failed send) stops or fails a send.
+5. **Publish** — Generate and publish a dashboard for subscriber counts, workflow status, evaluation score history, and each edition's check results.
 
 ## Architecture
 
@@ -33,18 +33,18 @@ Collects football club news, generates a newsletter, and sends it to subscribers
           → the model cites headlines as [N1], [N2]…; summarizers/citations.py turns
             the tags into links to the collected stories
      └─ evaluate/evaluate_main.py → report.md + summary.json (metrics v2, judge on, cost from usage.json)
-     └─ evaluate/gate.py          → hard checks → gate.json; emails the operator if a club is held
+     └─ evaluate/gate.py          → yes/no checks → gate.json, shown on the dashboard (report-only)
      → uploads newsletter/ and evaluation/ to GCS, then starts send_mail
 
 3) send_mail.py  (started by generate_newsletter)
-     downloads this week's newsletter/ (with gate.json and sent.json) from GCS
+     downloads this week's newsletter/ (with sent.json) from GCS
      ├─ google_sheet_parser.py      → per-team subscriber emails from the "신청자 목록"
      │                                 (signup list) worksheet, minus the "수신거부" worksheet
      └─ email_sender/smtp_sender.py → sends via Gmail SMTP with an unsubscribe footer
      → records who got this edition in sent.json, so a re-run never emails anyone twice
 
 4) generate_dashboard.py  (after collect_news / generate_newsletter / send_mail finish)
-     aggregates subscriber counts, workflow run history, and evaluation score history
+     aggregates subscriber counts, workflow run history, evaluation score history, and each edition's checks
      └─ dashboard/render.py → generates dashboard → deployed to GitHub Pages
 ```
 
@@ -54,7 +54,7 @@ Collects football club news, generates a newsletter, and sends it to subscribers
 config.py               Config
 edition.py              Which matches and headlines belong to a weekly edition
 team_names.py           Resolves club spellings ("Man Utd", "Spurs", "토트넘") via teams.yml
-notify.py               Emails the operator (failed workflows, held editions)
+notify.py               Emails the operator when a workflow fails
 
 scrappers/
   fotmob.py              Extracts events/stats/substitutions/goals/cards from
@@ -76,7 +76,7 @@ evaluate/                 Scores generated newsletters against fotmob / RSS sour
                                      the style guide requires? (target 95%)
     llm_drift.py               5% — did the model drift into chatbot mode?
     judge.py                  10% — LLM judge: does each item say what its source says? (--judge)
-  gate.py                  Hard pre-send checks; a club that fails one is not emailed
+  gate.py                  Yes/no checks per edition, shown on the dashboard (report-only)
   cost.py, pricing.yml     Token usage → USD (prices per model, kept up to date by hand)
   harness.py, runs.yml     Compare prompt / model variants on past editions
   backfill.py              Re-score past weeks after a metric change
@@ -144,13 +144,12 @@ python evaluate/backfill.py
 # Turn a newly found defect into a regression case
 python evaluate/golden.py --name <case> --date <YYYYMMDD> --team <Team> --why "<what's wrong>"
 
-# Pre-send checks (writes datas/newsletter/{date}/gate.json)
+# Edition checks, report-only (writes datas/newsletter/{date}/gate.json for the dashboard)
 python evaluate/gate.py --date 20261026
 
 # Send newsletter
 python send_mail.py --dry-run               # print what would be sent
 python send_mail.py
-python send_mail.py --force-teams Chelsea   # send a held club after checking it
 
 # Generate dashboard
 python generate_dashboard.py
@@ -164,9 +163,9 @@ python -m unittest discover -s tests
 | Workflow | Runs | Does |
 |---|---|---|
 | `collect_news.yaml` | Daily 00:30 UTC (09:30 KST) | Collect + upload to GCS; on Mondays, start `generate_newsletter` |
-| `generate_newsletter.yaml` | Started by Monday's `collect_news` (or by hand) | Generate → evaluate → pre-send checks → upload → start `send_mail` |
-| `send_mail.yaml` | Started by `generate_newsletter` (or by hand) | Send, skipping held clubs and anyone already sent this edition |
-| `dashboard.yaml` | After any of the workflows above finish | Rebuild + deploy the status dashboard (reads each week's stored summary.json) |
+| `generate_newsletter.yaml` | Started by Monday's `collect_news` (or by hand) | Generate → evaluate → edition checks (report-only) → upload → start `send_mail` |
+| `send_mail.yaml` | Started by `generate_newsletter` (or by hand) | Send every club's edition, skipping anyone already sent it |
+| `dashboard.yaml` | After any of the workflows above finish | Rebuild + deploy the status dashboard (each week's stored summary.json and gate.json) |
 | `tests.yaml` | Every push and pull request | Unit tests + the golden regression cases (no secrets needed) |
 
 The three are chained instead of scheduled separately so a newsletter is never generated before the weekend's matches are collected. GitHub starts scheduled runs hours late (about 5 hours in Oct 2026), so the whole chain starts late too.
@@ -175,9 +174,9 @@ Required GitHub Secrets: `OPENAI_API_KEY`, `GCP_SA_KEY`, `GOOGLE_CLOUD_EMAIL`, `
 
 ## When something goes wrong
 
-Every workflow emails the operator when it fails, and the pre-send checks email when they hold a club.
+Every workflow emails the operator when it fails. Content problems don't stop a send.
 
-- **A club was held** — the alert lists why: a wrong, missing or repeated match, a finished match that was never collected, few-shot example text, another club's news, or a link to a headline this club didn't have. Fix and regenerate (`generate_newsletter`, then `send_mail`), or check the edition and send it anyway: Actions → `send_mail` → Run workflow → `force_teams`.
+- **A club is flagged on the dashboard** — its edition card lists why: a wrong, missing or repeated match, a finished match that was never collected, few-shot example text, another club's news, or a link to a headline this club didn't have. The edition was already sent; fix the cause before next week (regenerating with `--date`/`--team` and checking locally helps).
 - **Monday's collection failed** — no newsletter is generated until a collection succeeds. Re-run `collect_news` (on a Monday it starts the newsletter again), or run `generate_newsletter` with `send_after` ticked.
 - **Some emails failed** — re-run `send_mail`. `sent.json` makes it skip everyone who already received the edition.
 - **Unsubscribes** — every email has a 수신거부 link and a `List-Unsubscribe` header. By default they open an email to the sender address; set `newsletter.unsubscribe_url` in `setting.yml` to use a Google Form (`{email}` is filled in). Addresses in a "수신거부" worksheet of the subscriber spreadsheet are never emailed.
