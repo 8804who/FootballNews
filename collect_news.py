@@ -3,7 +3,7 @@ import json
 import os
 from datetime import datetime, timedelta
 
-from config import FOTMOB_TEAMS, TEAMS
+from config import BBC_TEAMS, FOTMOB_TEAMS, TEAMS
 from scrappers.fotmob import fot_mob_crawler
 from scrappers.news_rss import news_rss
 
@@ -36,15 +36,35 @@ def get_fotmob_data(team, start_date, end_date):
             f.write(transfers_output if transfers_output else "")
         with open(f"{out_dir}/team_daily_report_{team_name}_fixtures.json", "w") as f:
             json.dump(raw_data["fixtures"], f, ensure_ascii=False, indent=1)
+        # Table + injuries for the newsletter's code-rendered blocks. A missing
+        # overview only costs those blocks, so it never fails the collection.
+        if raw_data.get("overview"):
+            with open(f"{out_dir}/team_daily_report_{team_name}_overview.json", "w") as f:
+                json.dump(raw_data["overview"], f, ensure_ascii=False, indent=1)
+        else:
+            print(f"[{team['name']}] ⚠ fotmob: no table/injury overview this run")
         print(f"[{team['name']}] fotmob: wrote {len(raw_data['matches'])} match(es) + transfers + fixture list")
 
 def get_news_rss_data(team):
     news_items = news_rss.get_transfer_news_rss(team['name'])
     markdown_output = news_rss.get_news_rss_markdown(news_items, team['name'])
-    os.makedirs(f"datas/news_rss/{datetime.now().strftime('%Y%m%d')}", exist_ok=True)
-    with open(f"datas/news_rss/{datetime.now().strftime('%Y%m%d')}/team_daily_report_{team['name'].replace(" ", "_")}.md", "w") as f:
+    out_dir = f"datas/news_rss/{datetime.now().strftime('%Y%m%d')}"
+    token = team['name'].replace(" ", "_")
+    os.makedirs(out_dir, exist_ok=True)
+    with open(f"{out_dir}/team_daily_report_{token}.md", "w") as f:
         f.write(markdown_output if markdown_output else "There is no transfer news this week.")
     print(f"[{team['name']}] news_rss: wrote {len(news_items)} item(s)")
+
+    # BBC's own club feed carries a one-line summary per story. It goes in a
+    # separate file, so generate code that predates it never reads it, and
+    # a failed fetch writes nothing (Google News above still stands).
+    bbc_team = next((t for t in BBC_TEAMS if t['name'] == team['name']), None)
+    if bbc_team:
+        bbc_items = news_rss.get_bbc_team_news(team['name'], bbc_team['slug'])
+        if bbc_items is not None:
+            with open(f"{out_dir}/team_daily_report_{token}_bbc.json", "w") as f:
+                json.dump(bbc_items, f, ensure_ascii=False, indent=1)
+            print(f"[{team['name']}] bbc: wrote {len(bbc_items)} item(s)")
 
 
 

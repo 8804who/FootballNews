@@ -58,6 +58,23 @@ fotmob:
     - name: Tottenham Hotspur
       id: 8586
 
+# BBC Sport's club feeds (feeds.bbci.co.uk/sport/football/teams/{slug}/rss.xml),
+# whose items carry a one-line summary. A club without a slug is skipped.
+bbc:
+  teams:
+    - name: Manchester United
+      slug: manchester-united
+    - name: Liverpool
+      slug: liverpool
+    - name: Chelsea
+      slug: chelsea
+    - name: Arsenal
+      slug: arsenal
+    - name: Manchester City
+      slug: manchester-city
+    - name: Tottenham Hotspur
+      slug: tottenham-hotspur
+
 # Other spellings of each club (FotMob's short names, headlines, the model's
 # output, sign-up form answers), so they all resolve to the name above.
 # Spaces, case, accents and a trailing "FC" are ignored when matching.
@@ -68,3 +85,82 @@ aliases:
   Arsenal: [아스날, 아스널]
   Manchester City: [Man City, 맨시티, 맨체스터 시티]
   Tottenham Hotspur: [Tottenham, Spurs, 토트넘, 토트넘 홋스퍼]
+
+# How each club's name is said in Korean, so a particle after the English
+# name agrees with it: "Arsenal과" (아스널), "Chelsea와" (첼시),
+# "Arsenal로" (ㄹ takes 로). Used by summarizers/korean.py on the model's
+# output; a club missing here is left as the model wrote it.
+readings:
+  Arsenal: 아스널
+  Chelsea: 첼시
+  Liverpool: 리버풀
+  Manchester City: 맨체스터 시티
+  Man City: 맨시티
+  Manchester United: 맨체스터 유나이티드
+  Man United: 맨 유나이티드
+  Man Utd: 맨유
+  Tottenham Hotspur: 토트넘 홋스퍼
+  Tottenham: 토트넘
+  Spurs: 스퍼스
+  Newcastle: 뉴캐슬
+  Newcastle United: 뉴캐슬 유나이티드
+  Aston Villa: 애스턴 빌라
+  Brighton: 브라이턴
+  Brighton & Hove Albion: 브라이턴 앤 호브 앨비언
+  Brentford: 브렌트퍼드
+  Bournemouth: 본머스
+  AFC Bournemouth: 본머스
+  Crystal Palace: 크리스털 팰리스
+  Everton: 에버턴
+  Fulham: 풀럼
+  Nottm Forest: 노팅엄 포리스트
+  Nottingham Forest: 노팅엄 포리스트
+  West Ham: 웨스트햄
+  West Ham United: 웨스트햄 유나이티드
+  Wolves: 울브스
+  Wolverhampton Wanderers: 울버햄튼 원더러스
+  Leeds: 리즈
+  Leeds United: 리즈 유나이티드
+  Sunderland: 선덜랜드
+  Burnley: 번리
+  Leicester: 레스터
+  Leicester City: 레스터 시티
+  Ipswich: 입스위치
+  Ipswich Town: 입스위치 타운
+  Southampton: 사우샘프턴
+  Hull: 헐
+  Hull City: 헐 시티
+  Wrexham: 렉섬
+  Coventry: 코번트리
+  Fleetwood: 플리트우드
+  Fleetwood Town: 플리트우드 타운
+  Real Madrid: 레알 마드리드
+  Barcelona: 바르셀로나
+  Bayern München: 바이에른 뮌헨
+  Bayern Munich: 바이에른 뮌헨
+  Bayern: 바이에른
+  Paris Saint-Germain: 파리 생제르맹
+  PSG: 피에스지
+  Inter: 인테르
+  Juventus: 유벤투스
+  Napoli: 나폴리
+  Atletico Madrid: 아틀레티코 마드리드
+  Atlético Madrid: 아틀레티코 마드리드
+  Dortmund: 도르트문트
+  Borussia Dortmund: 보루시아 도르트문트
+  Bayer Leverkusen: 바이어 레버쿠젠
+  Leverkusen: 레버쿠젠
+  Benfica: 벤피카
+  Porto: 포르투
+  Ajax: 아약스
+  Celtic: 셀틱
+  Club Brugge: 클뤼프 브뤼허
+  Lille: 릴
+  LASK: 라스크
+  Slavia Prague: 슬라비아 프라하
+  Hoffenheim: 호펜하임
+  Villarreal: 비야레알
+  Girona: 지로나
+  Como: 코모
+  Monaco: 모나코
+  Marseille: 마르세유

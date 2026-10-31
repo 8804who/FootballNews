@@ -211,8 +211,67 @@ class FotMobCrawler:
             "matches": matches_data,
             "transfers": transfers_data,
             "fixtures": self.get_fixture_list(team_data),
+            "overview": self.get_overview(team_data),
         }
         return report_data
+
+
+    def get_overview(self, team_data, league_name="Premier League"):
+        """League table and injury list for the newsletter's 순위 / 결장 blocks,
+        or None. The team page's shape differs between the intercepted API
+        response and the __NEXT_DATA__ fallback, so every key is optional and
+        a surprise shape only costs the blocks, never the collection."""
+        try:
+            return {
+                "collected_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "team_id": (team_data.get('details') or {}).get('id'),
+                "league": self._league_table(team_data, league_name),
+                "injuries": self._injuries(team_data),
+            }
+        except Exception as e:
+            print(f"Overview extraction failed: {e}")
+            return None
+
+
+    def _league_table(self, team_data, league_name):
+        """{league_name, league_id, rows} for the domestic league, or None.
+        team_data['table'] can also hold a Champions League phase table."""
+        tables = team_data.get('table') or []
+        candidates = []
+        for entry in tables if isinstance(tables, list) else []:
+            data = (entry or {}).get('data') or {}
+            rows = ((data.get('table') or {}).get('all')) if isinstance(data.get('table'), dict) else None
+            if rows:
+                candidates.append((data, rows))
+        if not candidates:
+            return None
+        data, rows = next(((d, r) for d, r in candidates if d.get('leagueName') == league_name), candidates[0])
+        keep = ("idx", "id", "name", "shortName", "played", "wins", "draws", "losses", "scoresStr", "goalConDiff", "pts")
+        return {
+            "league_name": data.get('leagueName'),
+            "league_id": data.get('leagueId'),
+            "rows": [{k: row.get(k) for k in keep} for row in rows],
+        }
+
+
+    def _injuries(self, team_data):
+        """Injured squad members with FotMob's expected return ("Mid December 2026")."""
+        groups = ((team_data.get('squad') or {}).get('squad')) or []
+        injured = []
+        for group in groups if isinstance(groups, list) else []:
+            if (group or {}).get('title') == 'coach':
+                continue
+            for member in (group or {}).get('members') or []:
+                injury = member.get('injury')
+                if not injury:
+                    continue
+                injured.append({
+                    "name": member.get('name'),
+                    "positions": member.get('positionIdsDesc'),
+                    "role": ((member.get('role') or {}).get('fallback')),
+                    "expected_return": injury.get('expectedReturn'),
+                })
+        return injured
 
 
     def get_fixture_list(self, team_data):
@@ -227,11 +286,20 @@ class FotMobCrawler:
                 "utc_time": status.get('utcTime'),
                 "finished": bool(status.get('finished')),
                 "cancelled": bool(status.get('cancelled')),
+                # Placeholder kickoffs for fixtures not yet scheduled by TV.
+                "date_tbd": bool(status.get('matchDateTbd')),
+                "time_tbd": bool(status.get('matchTimeTbd')),
                 "score": status.get('scoreStr'),
+                # "After penalties" / "After extra time"; with a shootout the
+                # side scores below include the penalties (1-1, 5-3 → 6 and 4).
+                "decided": (status.get('reason') or {}).get('long'),
+                "home_total": (match.get('home') or {}).get('score'),
+                "away_total": (match.get('away') or {}).get('score'),
                 "home": match.get('home', {}).get('name'),
                 "away": match.get('away', {}).get('name'),
                 "opponent": match.get('opponent', {}).get('name'),
                 "tournament": (match.get('tournament') or {}).get('name'),
+                "tournament_id": (match.get('tournament') or {}).get('leagueId'),
             })
         return fixtures
 

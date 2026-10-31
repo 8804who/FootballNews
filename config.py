@@ -45,6 +45,7 @@ with open("teams.yml", "r") as f:
     FBREF_TEAMS = data["fbref"]["teams"]
     FPL_TEAMS = data["FPL"]["teams"]
     FOTMOB_TEAMS = data["fotmob"]["teams"]
+    BBC_TEAMS = (data.get("bbc") or {}).get("teams", [])
 
 ### SETTING ###
 with open("setting.yml", "r") as f:
