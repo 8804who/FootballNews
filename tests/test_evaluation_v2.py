@@ -175,8 +175,11 @@ class HarnessSummaryTest(unittest.TestCase):
             components = {k: overall for k in WEIGHTS}
             evaluation = {"overall": overall, "components": components, "faithfulness": {"calls": []}}
             gate_result = {"flagged": flagged, "problems": ["wrong score"] if flagged else [], "warnings": []}
+            style = {"banned": 4 if flagged else 1, "held_out": 2, "dashes": 3 if flagged else 0,
+                     "monotone_runs": 0, "headline_chars": 20, "by_pattern": {}}
             return {"run": run, "date": "20261019", "team": "Arsenal", "error": None, "eval": evaluation,
-                    "gate": gate_result, "calls": [{"model": model, "input_tokens": 1000, "output_tokens": 500, "seconds": 2}]}
+                    "gate": gate_result, "style": style, "style_raw": style,
+                    "calls": [{"model": model, "input_tokens": 1000, "output_tokens": 500, "seconds": 2}]}
 
         runs = [{"name": "baseline", "model": "gpt-5-mini"}, {"name": "nano", "model": "gpt-5.4-nano"}]
         summaries = {"baseline": harness._summarize([task("baseline", 0.9)]),
@@ -185,6 +188,7 @@ class HarnessSummaryTest(unittest.TestCase):
         report = harness.render_report(runs, summaries, ["20261019"], ["Arsenal"], False, None)
         self.assertIn("80.0% (-10.0)", report)
         self.assertIn("| Flagged by the edition checks | 0 / 1 | 1 / 1 |", report)
+        self.assertIn("| Long dashes per edition, before tidy() | 0.0 | 3.0 |", report)
 
 
 class HistoryVersionTest(unittest.TestCase):

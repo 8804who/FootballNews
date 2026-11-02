@@ -6,7 +6,8 @@
 
 # Edition dates (Mondays). Sep 21 and Oct 19 2026 had matches for nearly
 # every club; Sep 28 and Oct 5 had none, so they'd only test the news half.
-dates: [20260921, 20261019]
+# Oct 26 was held out while the Nov 2026 prompt was tuned on the other two.
+dates: [20260921, 20261019, 20261026]
 
 runs:
   - name: baseline

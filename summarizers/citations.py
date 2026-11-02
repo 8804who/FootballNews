@@ -15,11 +15,14 @@ _NUM_RE = re.compile(r"\d+")
 
 
 def format_news_input(items: Sequence) -> str:
-    """One line per headline: '- [N1] 2026-10-20 · BBC · 보도 · headline'."""
+    """One line per headline, '- [N1] 2026-10-20 · BBC · 보도 · headline',
+    and the story's one-line summary under it when the source gave one."""
     lines = []
     for i, item in enumerate(items, 1):
         day = item.published.date() if item.published else item.collected
         lines.append(f"- [N{i}] {day:%Y-%m-%d} · {item.outlet or '출처 미상'} · {item.kind} · {item.title}")
+        if getattr(item, "summary", ""):
+            lines.append(f"  요약: {item.summary}")
     return "\n".join(lines)
 
 

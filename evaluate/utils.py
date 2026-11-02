@@ -1,7 +1,8 @@
 """Shared paths, regex helpers, and data-loading utilities for all evaluators."""
 
+import json
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Optional, Set, Tuple
 
@@ -201,9 +202,44 @@ def load_news_items_for_team(token: str, newsletter_date: datetime) -> List["edi
     )
 
 
-def load_news_source_for_team(token: str, newsletter_date: datetime) -> str:
-    """Headlines + FotMob transfer lines the model saw for this edition, as
-    plain text (URLs left out so opaque Google News IDs don't pollute the
-    word pool)."""
-    headlines = [item.headline for item in load_news_items_for_team(token, newsletter_date)]
-    return "\n".join(headlines + load_transfer_lines(token, newsletter_date))
+def load_news_source_for_team(token: str, newsletter_date: datetime,
+                              items: Optional[List["edition.NewsItem"]] = None) -> str:
+    """Headlines (with summaries) + FotMob transfer lines the model saw for
+    this edition, as plain text (URLs left out so opaque Google News IDs
+    don't pollute the word pool)."""
+    if items is None:
+        items = load_news_items_for_team(token, newsletter_date)
+    return "\n".join([item.source_text for item in items] + load_transfer_lines(token, newsletter_date))
+
+
+def load_inputs(newsletter_file: Path) -> Optional[dict]:
+    """inputs/{team}.json beside a newsletter: exactly what it was generated
+    from (generate_newsletter.edition_inputs). Editions from before Nov 2026
+    have none and are scored against a fresh read of datas/ instead."""
+    token = resolve_newsletter_token(newsletter_file.stem)
+    path = newsletter_file.parent / "inputs" / f"{token}.json"
+    if not token or not path.exists():
+        return None
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def news_items_from_inputs(inputs: dict) -> List["edition.NewsItem"]:
+    items = []
+    for raw in inputs.get("news") or []:
+        published = (datetime.strptime(raw["published"], "%Y-%m-%d %H:%M").replace(tzinfo=timezone.utc)
+                     if raw.get("published") else None)
+        items.append(edition.NewsItem(
+            headline=raw["headline"], link=raw["link"], published=published,
+            collected=datetime.strptime(raw["collected"], "%Y-%m-%d").date(), summary=raw.get("summary") or "",
+        ))
+    return items
+
+
+def edition_news_items(newsletter_file: Path, token: str, newsletter_date: datetime,
+                       inputs: Optional[dict] = None) -> List["edition.NewsItem"]:
+    """The stories an edition was written from: its inputs record if it has
+    one, else the legacy re-read (unchanged, so old scores don't move)."""
+    inputs = inputs if inputs is not None else load_inputs(newsletter_file)
+    if inputs is not None:
+        return news_items_from_inputs(inputs)
+    return load_news_items_for_team(token, newsletter_date)

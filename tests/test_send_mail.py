@@ -109,6 +109,15 @@ class SendNewslettersTest(unittest.TestCase):
         self.assertIn("수신거부", sender.sent[0]["footer"])
         self.assertIn("mailto:", sender.sent[0]["headers"]["List-Unsubscribe"])
 
+    def test_footer_asks_for_feedback_with_club_and_edition_in_the_reply(self):
+        sender = FakeSender()
+        self.send(sender)
+        footer = sender.sent[0]["footer"]
+        self.assertIn("한 줄만 답장해 주셔도", footer)
+        self.assertIn("👍 좋았어요", footer)
+        team = sender.sent[0]["subject"].split("] ")[1].split(" 주간")[0]
+        self.assertIn(f"subject=FootballNews%20%F0%9F%91%8E%20{team}%2020261026", footer)
+
     def test_a_missing_newsletter_file_fails_the_run_instead_of_sending_a_blank_email(self):
         (self.folder / "newsletter_Arsenal.md").unlink()
         sender = FakeSender()

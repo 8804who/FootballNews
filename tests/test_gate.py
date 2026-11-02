@@ -94,6 +94,41 @@ class CheckEditionTest(unittest.TestCase):
         self.assertTrue(any("Mikel Arteta" in w for w in result["warnings"]))
 
 
+class NewChecksTest(unittest.TestCase):
+    """Report-only warnings added with the 2026-11 news sections."""
+
+    def check(self, text, own):
+        return gate.check_edition("Arsenal", RUN, text, {"Arsenal": own})
+
+    def test_a_confirmed_item_cited_from_gossip_warns(self):
+        from edition import NewsItem
+        rumor = NewsItem("Arsenal eye move for winger - Paper Talk", "https://news.example/2", None, RUN.date())
+        own = dict(ARSENAL, links=ARSENAL["links"] | {rumor.link}, items={rumor.link: rumor})
+        text = EDITION + "### ✅ 확정 소식\n- **Arsenal, 윙어 영입 확정** (보도)  \n  계약을 마쳤습니다. ([Sky](https://news.example/2))\n"
+        warnings = self.check(text, own)["warnings"]
+        self.assertTrue(any("확정 item cites a rumor" in w for w in warnings), warnings)
+
+    def test_an_unlinked_confirmed_item_warns_unless_it_is_fotmobs_own(self):
+        text = EDITION + "### ✅ 확정 소식\n- **A 이적 확정** (FotMob 공식)  \n  떠납니다.\n- **B 계약** (보도)  \n  했습니다.\n"
+        # B only: A is FotMob's own transfer list, which has no link to give.
+        self.assertIn("1 news item(s) without a source link", self.check(text, ARSENAL)["warnings"])
+
+    def test_a_comeback_with_no_lead_change_warns(self):
+        never_behind = ("## 🏟️ Match: vs Bayern München\n- **Date:** 2026-10-21 19:00\n- **Venue:** Away\n- **Score:** 1 - 2\n"
+                        "- `10'` **Arsenal**:  - ⚽ Goal: A (0 - 1)\n- `50'` **Bayern München**:  - ⚽ Goal: B (1 - 1)\n"
+                        "- `80'` **Arsenal**:  - ⚽ Goal: C (1 - 2)\n---\n")
+        own = dict(ARSENAL, blocks=[never_behind])
+        claim = EDITION.replace("2-2로 비겼습니다.", "2-2로 비겼습니다. 후반에 경기를 뒤집었습니다.")
+        self.assertIn("says 역전/뒤집 but no match this week changed leader", self.check(claim, own)["warnings"])
+        attempt = EDITION.replace("2-2로 비겼습니다.", "2-2로 비겼습니다. 끝까지 뒤집으려 했습니다.")
+        self.assertNotIn("says 역전/뒤집 but no match this week changed leader", self.check(attempt, own)["warnings"])
+
+    def test_the_code_rendered_blocks_are_not_checked(self):
+        block = "## 📍 현재 순위\n\n**2위 · 8경기 승점 21**\n\n| 1 | Invented Club FC | 8 | 21 | +11 |\n\n"
+        text = EDITION.replace("## 🔁 이적 & 뉴스", block + "## 🔁 이적 & 뉴스")
+        self.assertEqual(self.check(text, ARSENAL), self.check(EDITION, ARSENAL))
+
+
 class ExampleNamesTest(unittest.TestCase):
     def test_example_yml_names_are_the_fictional_ones(self):
         names = gate.example_names()

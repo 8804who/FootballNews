@@ -49,6 +49,7 @@ from typing import Dict, List, Optional
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import edition
+import newsletter_sections
 from evaluate import (
     cost,
     hallucination,
@@ -63,9 +64,10 @@ from evaluate import (
 from evaluate import utils
 from evaluate.utils import (
     NEWSLETTER_ROOT,
+    edition_news_items,
     load_fotmob_for_team,
+    load_inputs,
     load_match_blocks,
-    load_news_items_for_team,
     load_transfer_lines,
     parse_date,
     resolve_newsletter_token,
@@ -118,7 +120,9 @@ def evaluate_newsletter(newsletter_file: Path, use_judge: bool = False,
     if token is None or not source_available(token, nl_date):
         return None
 
-    raw = newsletter_file.read_text(encoding="utf-8")
+    # The 순위 / 다음 경기 / 결장 blocks are copied from FotMob by code;
+    # only what the LLM wrote is scored.
+    raw = newsletter_sections.strip_data_blocks(newsletter_file.read_text(encoding="utf-8"))
     # Source links ("([BBC](https://…))") are scored as their label only, so
     # URL fragments aren't mistaken for names or English text.
     text = strip_links(raw)
@@ -126,8 +130,11 @@ def evaluate_newsletter(newsletter_file: Path, use_judge: bool = False,
     start, end = edition.edition_window(nl_date)
     blocks = load_match_blocks(token, nl_date)
     fotmob_matches, source_players = load_fotmob_for_team(token, nl_date)
-    news_items = load_news_items_for_team(token, nl_date)
+    inputs = load_inputs(newsletter_file)
+    news_items = edition_news_items(newsletter_file, token, nl_date, inputs)
     transfers = load_transfer_lines(token, nl_date)
+    # Names the news call was shown as "printed elsewhere" are known names too.
+    source_players = source_players | set((inputs or {}).get("shown_separately") or [])
 
     # Run each metric
     m1 = score_accuracy.evaluate(fotmob_matches, text)
@@ -137,15 +144,16 @@ def evaluate_newsletter(newsletter_file: Path, use_judge: bool = False,
     # The newsletter also covers RSS/transfer news, so names from those
     # sources are legitimate — fold them into the pool or they'd be flagged.
     news_words = news_grounding.build_source_words(
-        "\n".join([item.headline for item in news_items] + transfers), source_players)
+        "\n".join([item.source_text for item in news_items] + transfers), source_players)
     m4 = hallucination.evaluate(text, source_players | news_words)
     m5 = language_compliance.evaluate(raw)
-    headline_words = {item.link: news_grounding.build_source_words(item.headline, set()) for item in news_items}
+    headline_words = {item.link: news_grounding.build_source_words(item.source_text, set()) for item in news_items}
     m6 = news_grounding.evaluate(raw, news_words, headline_words)
     m7 = match_facts.evaluate(text, blocks)
     m8 = judge.evaluate(
-        raw, edition.matches_markdown(token.replace("_", " "), blocks, start, end),
-        {item.link: item.headline for item in news_items}, model=judge_model,
+        raw, edition.matches_markdown(token.replace("_", " "), blocks, start, end,
+                                      edition.load_fixtures(token, start, nl_date, root=utils.DATA_ROOT)),
+        {item.link: item.source_text for item in news_items}, model=judge_model,
     ) if use_judge else _NO_JUDGE
 
     # Overall weighted score. A component is None when that metric genuinely

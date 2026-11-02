@@ -179,5 +179,16 @@ class LoadTransfersTest(DataDirTestCase):
         self.assertIn("Alex Sample", lines[0])
 
 
+class ShootoutTest(unittest.TestCase):
+    def test_a_cup_tie_decided_on_penalties_says_so(self):
+        block = match_block("Fleetwood", "2026-10-27 20:00", venue="Away", score="1 - 1")
+        fixtures = [{"utc_time": "2026-10-27T20:00:00.000Z", "home": "Fleetwood", "away": "Arsenal",
+                     "decided": "After penalties", "home_total": 6, "away_total": 4}]
+        start, end = edition.edition_window(datetime(2026, 11, 2, tzinfo=UTC))
+        text = edition.matches_markdown("Arsenal", [block], start, end, fixtures)
+        self.assertIn("- **Result:** Fleetwood 1 - 1 Arsenal (Arsenal drew; Fleetwood won 5-3 on penalties)", text)
+        self.assertNotIn("penalties", edition.matches_markdown("Arsenal", [block], start, end))
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -240,8 +240,11 @@ def extract_editions(date_str: str, checks: dict = None):
         hm = re.search(r"헤드라인.*?\n\s*\*\*(.+?)\*\*", text)
         headline = hm.group(1).strip() if hm else "(no headline found)"
 
+        # The scoreboard's first row: the table under the 스코어보드 heading,
+        # not the first table in the file (the 순위 block has one too).
         score_line = None
-        table_rows = [line for line in text.splitlines() if line.strip().startswith("|")]
+        board = re.search(r"^##[^\n]*스코어보드[^\n]*\n(.*?)(?=^## |\Z)", text, re.MULTILINE | re.DOTALL)
+        table_rows = [line for line in (board.group(1) if board else "").splitlines() if line.strip().startswith("|")]
         if len(table_rows) >= 3:
             cells = [c.strip() for c in table_rows[2].split("|")[1:-1]]
             if len(cells) >= 2:

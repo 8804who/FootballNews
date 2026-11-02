@@ -2,6 +2,8 @@
 # FICTIONAL and shows FORMAT ONLY: real names here used to leak into
 # subscribers' newsletters (Aug–Oct 2026). evaluate/gate.py flags any edition
 # that contains a name from this file, so keep them obviously made up.
+# The outputs are also the model's best guide to the voice (prompt.yml):
+# plain 합쇼체, concrete facts, no long dashes or arrows, no stock phrases.
 
 matches_report:
   - input: |
@@ -9,42 +11,44 @@ matches_report:
       Venue: Home
       Match: Example FC vs Demo United
       Score: 3-1
+      Result: Example FC 3 - 1 Demo United (Example FC won)
       Key Events:
-      - 15' Example FC: Goal by Alex Sample
-      - 32' Demo United: Goal by Chris Demo
-      - 45' Example FC: Goal by Jordan Placeholder
-      - 78' Example FC: Goal by Taylor Mock
+      - 15' Example FC: Goal by Alex Sample (1 - 0)
+      - 32' Demo United: Goal by Chris Demo (1 - 1)
+      - 45' Example FC: Goal by Jordan Placeholder (2 - 1)
+      - 78' Example FC: Goal by Taylor Mock (3 - 1)
     output: |
       ## 🏆 이번 주 헤드라인
-      **Example FC, Sample·Placeholder·Mock 골 잔치로 Demo United 제압**
+      **Placeholder의 한 방, 동점은 13분 천하였습니다**
 
       ## ⭐ 이번 주 베스트 경기
-      Example FC가 홈에서 Demo United를 3-1로 꺾었습니다. 15분 만에 Alex Sample이 선제골로 분위기를 가져왔고, Chris Demo에게 동점을 허용했지만 전반 막판 Jordan Placeholder가 다시 앞서 나갔습니다. 후반 78분 Taylor Mock의 쐐기골로 사실상 경기를 닫아버렸습니다.
+      Example FC가 홈에서 Demo United를 3-1로 꺾었습니다. 15분 Alex Sample이 골문을 열었고, 32분 Chris Demo에게 동점골을 맞았지만 그 균형은 오래가지 않았습니다. 전반 종료 직전 Jordan Placeholder가 다시 앞서가는 골을 넣었고, 78분 Taylor Mock이 쐐기를 박았습니다. **한 번 따라잡힌 뒤가 더 무서운 팀이었습니다.**
 
       ## 📊 한눈에 보는 스코어보드
       | 경기 | 스코어 | 한 줄 요약 |
       |------|--------|----------|
-      | Example FC vs Demo United | 3-1 | Chris Demo 한 골은 잠깐의 위안에 그쳤습니다 |
+      | Example FC vs Demo United | 3-1 | 동점을 내주고도 13분 만에 다시 앞섰습니다 |
       ---
   - input: |
       Team: Mock City
       Venue: Away
       Match: Sample Town vs Mock City
       Score: 0-2
+      Result: Sample Town 0 - 2 Mock City (Mock City won)
       Key Events:
-      - 23' Mock City: Goal by Riley Stub
-      - 67' Mock City: Goal by Casey Dummy
+      - 23' Mock City: Goal by Riley Stub (0 - 1)
+      - 67' Mock City: Goal by Casey Dummy (0 - 2)
     output: |
       ## 🏆 이번 주 헤드라인
-      **Mock City, 적지에서도 같은 풍경**
+      **Stub이 열고 Dummy가 잠갔습니다**
 
       ## ⭐ 이번 주 베스트 경기
-      Mock City가 적지에서 Sample Town을 2-0으로 잠재웠습니다. Riley Stub이 23분 만에 선제골로 분위기를 깔아두자, 후반 Casey Dummy가 한 골을 더 보태며 승부에 못을 박았습니다. 무실점까지 챙긴 깔끔한 원정이었습니다 ✅
+      Mock City가 Sample Town 원정에서 2-0으로 이겼습니다. 23분 Riley Stub이 선제골로 문을 열었고, 67분 Casey Dummy가 한 골을 더 보태며 자물쇠를 채웠습니다. 90분 내내 리드를 한 번도 내주지 않은, 군더더기 없는 원정이었습니다 ✅
 
       ## 📊 한눈에 보는 스코어보드
       | 경기 | 스코어 | 한 줄 요약 |
       |------|--------|----------|
-      | Sample Town vs Mock City | 0-2 | Stub-Dummy 듀오는 어딜 가도 똑같습니다 |
+      | Sample Town vs Mock City | 0-2 | 원정 무실점, 두 골이면 충분했습니다 |
       ---
 
 transfers_and_news_report:
@@ -55,28 +59,36 @@ transfers_and_news_report:
       - **Player:** Alex Sample **Type:** Example FC -> Demo United **Date:** 2000-01-01
 
       ### News & Rumors
-      - [N1] 2000-01-02 · Sky Sports · 보도 · Example FC in race with Demo United to sign Jordan Placeholder
+      - [N1] 2000-01-02 · BBC · 보도 · Example FC in race with Demo United to sign Jordan Placeholder
+        요약: Example FC and Demo United have both made enquiries about the 22-year-old midfielder, whose contract expires in the summer.
       - [N2] 2000-01-03 · Sky Sports · 가십 · Example FC manager Sam Fictional asked whether he will honour his contract - Paper Talk
     output: |
       ## 🔁 이적 & 뉴스
-      ### ✅ 공식 뉴스
-      **Alex Sample, Example FC를 떠나 Demo United로 가는 이적이 공식 확정됐습니다.** 중원의 한 축이 빠지는 셈이라, 라인업 구성에 변화는 불가피해 보입니다.
+      ### ✅ 확정 소식
+      - **Alex Sample, Demo United행 확정** (FotMob 공식)
+        Alex Sample이 Example FC를 떠나 Demo United 유니폼을 입습니다. 두 팀이 다시 만나는 날, 친정을 상대하는 Sample이 가장 바쁠 겁니다.
 
-      ### 🧪 루머 밀
-      - **Example FC, Jordan Placeholder 영입전에서 Demo United와 정면충돌** (보도) — 같은 선수를 두고 두 클럽이 맞붙는 모양새입니다. [N1]
-      - **Sam Fictional 감독, 계약을 끝까지 지킬지 질문 받아** (가십) — 감독 거취가 시즌 후반 가장 큰 변수로 떠올랐습니다. [N2]
-
-      ### 🎭 드라마 앵글
-      **한 선수를 두고 두 클럽이 정면으로 맞붙었습니다.** 누가 먼저 움직이느냐에 따라 두 팀의 시즌 구상이 통째로 달라질 수 있습니다. [N1]
+      ### 🧪 루머
+      - **Jordan Placeholder 영입전, 이번엔 Demo United와 정면 대결** (보도)
+        두 클럽이 이번 여름 계약이 끝나는 22세 미드필더 Jordan Placeholder 측에 나란히 문의를 넣었습니다. 방금 Alex Sample을 주고받은 두 팀이 이번엔 같은 선수를 두고 경쟁합니다. [N1]
+      - **Sam Fictional 감독, 계약을 끝까지 지킬까** (가십)
+        Sam Fictional 감독이 계약 기간을 채울지 질문받았다는 이야기가 가십 칼럼에 실렸습니다. 감독 거취가 입에 오르내리기 시작했습니다. [N2]
   - input: |
       ### Official Transfers
       (none this week)
 
       ### News & Rumors
       - [N1] 2000-01-04 · Sky Sports · 보도 · Sample Town teenager Chris Demo scores sensational U19 goal from inside own half
-      - [N2] 2000-01-05 · BBC · 보도 · Sample Town injuries: are they having a crisis after international withdrawals?
+        요약: The 17-year-old forward ran from inside his own half to score for his country's under-19 side.
+      - [N2] 2000-01-05 · BBC · 보도 · Sample Town confirm Riley Stub will miss six weeks with hamstring injury
+        요약: The defender was hurt in Saturday's win and will be out until the new year, the club said.
+      - [N3] 2000-01-05 · BBC · 보도 · Sample Town v Mock City: preview, team news and prediction
     output: |
       ## 🔁 이적 & 뉴스
-      ### 🧪 루머 밀
-      - **Sample Town 유망주 Chris Demo, U19에서 하프라인부터 단독 돌파 골 작렬** (보도) — 이름을 외워두셔도 좋겠습니다 🎯 [N1]
-      - **국가대표 차출 여파로 부상 위기설 제기** (보도) — 부상 명단이 빠르게 늘면서 라인업 운영에 빨간불이 켜졌습니다. [N2]
+      ### ✅ 확정 소식
+      - **Riley Stub, 햄스트링 부상으로 6주 결장** (보도)
+        토요일 승리 경기에서 다친 수비수 Riley Stub이 새해까지 돌아오지 못한다고 구단이 발표했습니다. 연말 빡빡한 일정을 수비수 한 명 없이 버텨야 합니다. [N2]
+
+      ### 🎭 드라마 앵글
+      - **17세 Chris Demo, 하프라인 뒤에서 출발한 원더골** (보도)
+        Sample Town 유망주 Chris Demo가 U19 대표팀 경기에서 자기 진영부터 혼자 공을 몰고 가 골망을 흔들었습니다. 이름을 외워 둘 때가 됐습니다 🎯 [N1]

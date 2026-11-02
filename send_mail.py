@@ -48,12 +48,23 @@ def unsubscribe_link(email: str) -> str:
     return f"mailto:{SMTP['USERNAME']}?subject={quote('FootballNews 수신거부')}&body={quote(body)}"
 
 
-def footer_for(team_name: str, email: str) -> str:
+def feedback_links(team_name: str, edition_date: str) -> str:
+    """👍 / 👎 as prefilled emails: no form or tracking needed, and each
+    reply names the club and edition it's about, so they can be counted."""
+    def vote(label: str, mark: str) -> str:
+        subject = quote(f"FootballNews {mark} {team_name} {edition_date}")
+        return f"[{label}](mailto:{SMTP['USERNAME']}?subject={subject})"
+    return f"{vote('👍 좋았어요', '👍')} · {vote('👎 아쉬워요', '👎')}"
+
+
+def footer_for(team_name: str, email: str, edition_date: str = "") -> str:
     links = [f"[수신거부]({unsubscribe_link(email)})"]
     if NEWSLETTER.get("signup_url"):
         links.append(f"[팀 변경]({NEWSLETTER['signup_url']})")
     links.append(f"[의견 보내기](mailto:{SMTP['USERNAME']}?subject={quote('FootballNews 의견')})")
     return (
+        "이번 호는 어떠셨나요? 눌러서 보내주시거나, 이 메일에 한 줄만 답장해 주셔도 큰 도움이 됩니다.\n\n"
+        f"{feedback_links(team_name, edition_date)}\n\n"
         f"FootballNews **{team_name}** 주간 뉴스레터를 신청하셔서 받으신 메일입니다.\n\n"
         + " · ".join(links)
     )
@@ -130,7 +141,7 @@ def send_newsletters(run_date, dry_run=False, sheet=google_sheet_parser, sender=
             try:
                 sender.send_email(
                     email, subject, newsletter,
-                    footer=footer_for(team_name, email),
+                    footer=footer_for(team_name, email, today_str),
                     headers={"List-Unsubscribe": list_unsubscribe_header(email)},
                 )
             except Exception as e:

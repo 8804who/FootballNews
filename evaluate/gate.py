@@ -16,7 +16,11 @@ wrong:
   6. every source link points at one of this club's headlines this week
 
 Softer findings (names in no source at all, news items without a source
-link, a low Korean ratio) are recorded as warnings.
+link, a low Korean ratio, a 확정 item cited from gossip, a comeback claimed
+in a week with no lead change) are recorded as warnings.
+
+The 순위 / 다음 경기 / 결장 blocks are rendered by code from FotMob data
+and are left out of every check.
 
 Writes datas/newsletter/{date}/gate.json, which generate_dashboard.py shows.
 
@@ -40,6 +44,7 @@ import yaml
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import edition
+import newsletter_sections as sections
 from evaluate import hallucination, language_compliance, match_facts, news_grounding, score_accuracy
 from evaluate import utils
 from evaluate.utils import (
@@ -47,9 +52,11 @@ from evaluate.utils import (
     extract_links,
     extract_newsletter_matches,
     load_fotmob_for_team,
+    load_inputs,
     load_match_blocks,
     load_news_items_for_team,
     load_news_source_for_team,
+    news_items_from_inputs,
     parse_date,
     resolve_newsletter_token,
     strip_links,
@@ -79,13 +86,16 @@ def example_names() -> Set[str]:
     return {n for n in _EXAMPLE_NAME_RE.findall(text) if not set(n.split()) & labels}
 
 
-def club_sources(token: str, date: datetime) -> Dict:
-    """Everything this club's edition was generated from."""
+def club_sources(token: str, date: datetime, inputs: Dict = None) -> Dict:
+    """Everything this club's edition was generated from: its inputs record
+    (generate_newsletter.edition_inputs) when it has one, else a re-read of
+    datas/ as the pipeline did before records existed."""
     start, end = edition.edition_window(date)
     blocks = load_match_blocks(token, date)
     matches, players = load_fotmob_for_team(token, date)
-    news_text = load_news_source_for_team(token, date)
-    items = load_news_items_for_team(token, date)
+    items = news_items_from_inputs(inputs) if inputs is not None else load_news_items_for_team(token, date)
+    news_text = load_news_source_for_team(token, date, items)
+    players = players | set((inputs or {}).get("shown_separately") or [])
     names = players | hallucination.extract_names(news_text)
     return {
         "start": start,
@@ -95,6 +105,7 @@ def club_sources(token: str, date: datetime) -> Dict:
         "text": edition.matches_markdown(token.replace("_", " "), blocks, start, end) + "\n" + news_text,
         "words": _words(names) | news_grounding.build_source_words(news_text, players),
         "links": {item.link for item in items},
+        "items": {item.link: item for item in items},
         "fixtures": edition.load_fixtures(token, start, date, root=utils.DATA_ROOT),
     }
 
@@ -106,22 +117,83 @@ def _uncollected_fixtures(src: Dict) -> List[str]:
             f"{edition.fixture_kickoff(f):%Y-%m-%d %H:%M} UTC), but it was never collected" for f in missing]
 
 
-def _unlinked_items(text: str) -> int:
-    """Items under 루머 밀 / 드라마 앵글 that carry no source link (공식 뉴스
-    items come from FotMob's transfer list, which has no link to give)."""
+# The sub-heading's words without "### " and the emoji: "확정 소식".
+_CONFIRMED = sections.CONFIRMED.split(" ", 2)[-1]
+
+
+def _news_subsections(text: str):
+    """(sub-heading, its items) for each ### part of the news section."""
     section = news_grounding.extract_news_section(text)
     parts = re.split(r"^### (.*)$", section, flags=re.MULTILINE)
-    count = 0
     for heading, body in zip(parts[1::2], parts[2::2]):
-        if "루머" not in heading and "드라마" not in heading:
-            continue
-        items = re.split(r"\n(?=- )|\n\s*\n", body.strip())
-        count += sum(1 for item in items if item.strip() and "](http" not in item)
+        yield heading, [item for item in re.split(r"\n(?=- )|\n\s*\n", body.strip()) if item.strip()]
+
+
+def _unlinked_items(text: str) -> int:
+    """News items with no source link: everything under 루머 / 드라마 앵글, and
+    확정 소식 items except those labelled as FotMob's own transfer list,
+    which has no link to give (the older 공식 뉴스 heading was all FotMob)."""
+    count = 0
+    for heading, items in _news_subsections(text):
+        if "루머" in heading or "드라마" in heading:
+            count += sum(1 for item in items if "](http" not in item)
+        elif _CONFIRMED in heading:
+            count += sum(1 for item in items if "](http" not in item and sections.FOTMOB_LABEL not in item)
     return count
+
+
+# Headlines that report an intention, not an event.
+_RUMOR_HEADLINE_RE = re.compile(
+    r"\b(?:linked|target|targets|bid|talks|eye|eyes|eyeing|interest|interested|want|wants|"
+    r"considering|consider|monitor|monitoring|weighing|line up|lining up|race)\b", re.IGNORECASE)
+
+
+def _confirmed_from_rumors(text: str, items_by_link: Dict) -> List[str]:
+    """확정 소식 items whose cited story is gossip or a 'linked with' headline:
+    the costly mistake is a rumor presented as done, not the reverse."""
+    found = []
+    for heading, items in _news_subsections(text):
+        if _CONFIRMED not in heading:
+            continue
+        for item in items:
+            for _, url in extract_links(item):
+                story = items_by_link.get(url)
+                if story and (story.kind == "가십" or _RUMOR_HEADLINE_RE.search(story.title)):
+                    found.append(f"{strip_links(item).splitlines()[0][:60]} ← {story.title[:70]}")
+    return found
+
+
+_GOAL_SCORE_RE = re.compile(r"Goal:[^\n(]*\((\d+)\s*-\s*(\d+)\)")
+
+
+def _had_lead_change(block: str) -> bool:
+    """A team that trailed later led (running scores of the goal events)."""
+    leaders = []
+    for home, away in _GOAL_SCORE_RE.findall(block):
+        diff = int(home) - int(away)
+        if diff:
+            leaders.append(diff > 0)
+    return any(a != b for a, b in zip(leaders, leaders[1:]))
+
+
+# A comeback stated as fact ("역전승", "재역전", "경기를 뒤집었습니다"), not a
+# metaphor or an attempt ("뒤집으려", "뒤집어야", "흐름이 뒤집히던").
+_COMEBACK_RE = re.compile(r"역전|뒤집(?:었|고|은)")
+_MATCH_SECTION_RE = re.compile(r"^##[^\n]*(?:헤드라인|베스트\s*경기|스코어보드)[^\n]*\n(.*?)(?=^## |\Z)",
+                               re.MULTILINE | re.DOTALL)
+
+
+def _comeback_without_lead_change(plain: str, blocks: List[str]) -> bool:
+    """The match sections claim a comeback in a week where no match changed
+    leader (a team ahead, later behind)."""
+    match_text = "\n".join(_MATCH_SECTION_RE.findall(plain))
+    return (bool(blocks) and _COMEBACK_RE.search(match_text) is not None
+            and not any(map(_had_lead_change, blocks)))
 
 
 def check_edition(token: str, date: datetime, text: str, all_sources: Dict[str, Dict]) -> Dict:
     src = all_sources[token]
+    text = sections.strip_data_blocks(text)
     plain = strip_links(text)
     problems: List[str] = []
     warnings: List[str] = []
@@ -169,6 +241,10 @@ def check_edition(token: str, date: datetime, text: str, all_sources: Dict[str, 
     unlinked = _unlinked_items(text)
     if unlinked:
         warnings.append(f"{unlinked} news item(s) without a source link")
+    for found in _confirmed_from_rumors(text, src.get("items") or {}):
+        warnings.append(f"확정 item cites a rumor or gossip story: {found}")
+    if _comeback_without_lead_change(plain, src["blocks"]):
+        warnings.append("says 역전/뒤집 but no match this week changed leader")
     lang = language_compliance.evaluate(text)
     if not lang["passed"]:
         warnings.append(f"Korean ratio {lang['ratio']:.0%} (target {lang['target']:.0%})")
@@ -181,7 +257,7 @@ def run_gate(date_str: str) -> Dict:
     folder = utils.NEWSLETTER_ROOT / date_str
     files = sorted(folder.glob("newsletter_*.md")) if folder.exists() else []
     tokens = [resolve_newsletter_token(f.stem) for f in files]
-    all_sources = {t: club_sources(t, date) for t in tokens}
+    all_sources = {t: club_sources(t, date, load_inputs(f)) for f, t in zip(files, tokens)}
 
     teams = {}
     for f, token in zip(files, tokens):

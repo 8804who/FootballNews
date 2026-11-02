@@ -36,10 +36,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import yaml
 
 from config import TEAMS
-from evaluate import cost, gate, judge
+from evaluate import cost, gate, judge, style
 from evaluate.evaluate_main import LABELS, METRICS_VERSION, WEIGHTS, evaluate_newsletter
-from evaluate.utils import BASE_DIR, parse_date
-from generate_newsletter import generate_edition, write_usage
+from evaluate.utils import BASE_DIR, load_inputs, parse_date
+from generate_newsletter import generate_edition, write_edition, write_usage
 from summarizers.llm import LLMSummarizer
 
 RUNS_YML = Path(__file__).resolve().parent / "runs.yml"
@@ -63,7 +63,8 @@ def _generate(run: dict, date_str: str, team: str) -> Dict:
     started = time.perf_counter()
     try:
         run_date = datetime.strptime(date_str, "%Y%m%d").replace(tzinfo=timezone.utc)
-        path.write_text(generate_edition(team, run_date, summarizer), encoding="utf-8")
+        markdown, inputs = generate_edition(team, run_date, summarizer)
+        write_edition(path.parent, team, markdown, inputs)
         return {"run": run["name"], "date": date_str, "team": team, "path": path, "calls": summarizer.calls, "error": None}
     except Exception as e:  # one failing model shouldn't stop the others
         return {"run": run["name"], "date": date_str, "team": team, "path": None, "calls": summarizer.calls,
@@ -87,7 +88,14 @@ def _score(task: Dict, sources: Dict, use_judge: bool, judge_model: Optional[str
     token = task["path"].stem.replace("newsletter_", "")
     date = parse_date(task["date"])
     task["eval"] = evaluate_newsletter(task["path"], use_judge=use_judge, judge_model=judge_model)
-    task["gate"] = gate.check_edition(token, date, task["path"].read_text(encoding="utf-8"), sources[task["date"]])
+    # Style of the sent text, and of the model's own output before tidy()
+    # (editions from before inputs records were kept only have the former).
+    text = task["path"].read_text(encoding="utf-8")
+    raw = (load_inputs(task["path"]) or {}).get("raw")
+    task["style"] = style.evaluate(text)
+    task["style_raw"] = style.evaluate("\n\n".join(raw.values())) if raw else task["style"]
+    task["gate"] = gate.check_edition(token, date, task["path"].read_text(encoding="utf-8"),
+                                      sources[(task["run"], task["date"])])
     return task
 
 
@@ -105,11 +113,23 @@ def _summarize(tasks: List[Dict]) -> Dict:
         "generation": cost.summarize_calls([c for t in tasks for c in t["calls"]]),
         "judge": cost.summarize_calls([c for t in scored for c in t["eval"]["faithfulness"]["calls"]]),
         "per_edition": {f"{t['date']} {t['team']}": t["eval"]["overall"] for t in scored},
+        "style": {
+            "banned": mean([t["style"]["banned"] for t in scored]),
+            "held_out": mean([t["style"]["held_out"] for t in scored]),
+            "raw_dashes": mean([t["style_raw"]["dashes"] for t in scored]),
+            "raw_banned": mean([t["style_raw"]["banned"] for t in scored]),
+            "monotone_runs": mean([t["style"]["monotone_runs"] for t in scored]),
+            "headline_chars": mean([t["style"]["headline_chars"] for t in scored if t["style"]["headline_chars"]]),
+        },
     }
 
 
 def _fmt(v: Optional[float]) -> str:
     return "—" if v is None else f"{v * 100:.1f}%"
+
+
+def _num(v: Optional[float]) -> str:
+    return "—" if v is None else f"{v:.1f}"
 
 
 def _delta(v: Optional[float], base: Optional[float]) -> str:
@@ -144,6 +164,12 @@ def render_report(runs: List[dict], summaries: Dict[str, Dict], dates: List[str]
         row("Flagged by the edition checks", [f"{len(summaries[n]['flagged'])} / {summaries[n]['editions']}" for n in names]),
         row("Pre-send warnings", [str(len(summaries[n]["warnings"])) for n in names]),
         row("Errors", [str(len(summaries[n]["errors"])) for n in names]),
+        row("AI-style signals per edition (prompt-banned)", [_num(summaries[n]["style"]["banned"]) for n in names]),
+        row("… before tidy() (model's own output)", [_num(summaries[n]["style"]["raw_banned"]) for n in names]),
+        row("Long dashes per edition, before tidy()", [_num(summaries[n]["style"]["raw_dashes"]) for n in names]),
+        row("Held-out style signals per edition", [_num(summaries[n]["style"]["held_out"]) for n in names]),
+        row("3-in-a-row identical endings", [_num(summaries[n]["style"]["monotone_runs"]) for n in names]),
+        row("Headline length (chars)", [_num(summaries[n]["style"]["headline_chars"]) for n in names]),
         row("Generation cost", [("unpriced" if gen(n)["cost_usd"] is None else f"${gen(n)['cost_usd']:.3f}") for n in names]),
         row("Cost per edition", [("—" if gen(n)["cost_usd"] is None or not summaries[n]["editions"]
                                   else f"${gen(n)['cost_usd'] / summaries[n]['editions']:.4f}") for n in names]),
@@ -200,7 +226,11 @@ def main() -> None:
                     write_usage(str(OUT / run["name"] / d), run["model"], usage)
         print("generated; scoring…")
 
-    sources = {d: {t.replace(" ", "_"): gate.club_sources(t.replace(" ", "_"), parse_date(d)) for t in teams} for d in dates}
+    # Per run and date: each edition is checked against its own inputs record.
+    sources = {(r["name"], d): {t.replace(" ", "_"): gate.club_sources(
+        t.replace(" ", "_"), parse_date(d),
+        load_inputs(OUT / r["name"] / d / f"newsletter_{t.replace(' ', '_')}.md")) for t in teams}
+        for r in runs for d in dates}
     with ThreadPoolExecutor(max_workers=args.workers if args.judge else 1) as pool:
         tasks = list(pool.map(lambda t: _score(t, sources, args.judge, args.judge_model), tasks))
 

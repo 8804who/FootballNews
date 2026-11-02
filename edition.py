@@ -115,6 +115,28 @@ def load_matches(token: str, start: datetime, end: datetime, run_date: datetime,
     return [found[k] for k in sorted(found)]
 
 
+def shootout(block: str, fixtures: Optional[List[dict]]) -> Optional[str]:
+    """'Fleetwood won 5-3 on penalties' when FotMob's fixture list says this
+    match went to penalties (fixture lists saved from Oct 31 2026 on). The
+    match report itself only has the 1-1, which reads as a draw: Arsenal's
+    cup exit to Fleetwood would have gone out as '1-1로 비겼습니다'."""
+    kickoff, score = match_kickoff(block), match_score(block)
+    if not (kickoff and score and fixtures):
+        return None
+    for f in fixtures:
+        if fixture_kickoff(f) != kickoff or f.get("decided") != "After penalties":
+            continue
+        try:
+            home_pens, away_pens = int(f["home_total"]) - score[0], int(f["away_total"]) - score[1]
+        except (KeyError, TypeError, ValueError):
+            return None
+        if home_pens == away_pens:
+            return None
+        winner = f.get("home") if home_pens > away_pens else f.get("away")
+        return f"{winner} won {max(home_pens, away_pens)}-{min(home_pens, away_pens)} on penalties"
+    return None
+
+
 def with_result_line(block: str, team_name: str) -> str:
     """Add "- **Result:** Fulham 2 - 3 Chelsea (Chelsea won)" after the score.
 
@@ -135,14 +157,22 @@ def with_result_line(block: str, team_name: str) -> str:
     return block[:score.end()] + line + block[score.end():]
 
 
-def matches_markdown(team_name: str, blocks: Sequence[str], start: datetime, end: datetime) -> str:
+def matches_markdown(team_name: str, blocks: Sequence[str], start: datetime, end: datetime,
+                     fixtures: Optional[List[dict]] = None) -> str:
     """Selected blocks under the header collect_news.py writes ('' if none),
-    each with an explicit result line."""
+    each with an explicit result line (and the shootout, when `fixtures`
+    shows one)."""
     if not blocks:
         return ""
     header = f"# 📅 Weekly Report: {team_name}\n**Period:** {date_range_label(start, end)}\n\n---\n\n"
-    blocks = [with_result_line(b, team_name) for b in blocks]
+    blocks = [_with_shootout(with_result_line(b, team_name), shootout(b, fixtures)) for b in blocks]
     return header + "".join(b if b.endswith("\n") else b + "\n" for b in blocks)
+
+
+def _with_shootout(block: str, note: Optional[str]) -> str:
+    if not note:
+        return block
+    return re.sub(r"(^- \*\*Result:\*\* .*?)\)$", rf"\1; {note})", block, count=1, flags=re.MULTILINE)
 
 
 def played_matches(blocks: Sequence[str]) -> List[Tuple[datetime, str]]:
@@ -222,10 +252,17 @@ class NewsItem:
     link: str
     published: Optional[datetime]  # None for lines collected before publish times were stored
     collected: date                # the folder it was read from
+    summary: str = ""              # BBC's one-line standfirst; Google News gives none
 
     @property
     def title(self) -> str:
         return _split_outlet(self.headline)[0]
+
+    @property
+    def source_text(self) -> str:
+        """Everything the model was told about this story: what an item
+        written from it may say, and what the evaluation checks it against."""
+        return f"{self.headline}\n{self.summary}" if self.summary else self.headline
 
     @property
     def outlet(self) -> str:
@@ -302,4 +339,107 @@ def load_news(token: str, team_name: str, start: datetime, end: datetime, run_da
                 continue
             seen.add(normalize(item.title))
             items.append(item)
-    return sorted(items, key=lambda i: i.published or datetime.combine(i.collected, datetime.min.time(), timezone.utc))
+    return sorted(items, key=_news_order)
+
+
+def _news_order(item: NewsItem) -> datetime:
+    return item.published or datetime.combine(item.collected, datetime.min.time(), timezone.utc)
+
+
+def load_bbc_news(token: str, team_name: str, start: datetime, end: datetime, run_date: datetime,
+                  played: Sequence[Tuple[datetime, str]] = (), root: Path = DATA_ROOT) -> List[NewsItem]:
+    """Stories from BBC Sport's club feed (collect_news.py, from Nov 2026)
+    published in [start, end), each once, with their summaries."""
+    team_aliases = aliases(team_name)
+    seen, items = set(), []
+    for d in folder_dates(start, run_date):
+        path = root / "news_rss" / d / f"team_daily_report_{token}_bbc.json"
+        if not path.exists():
+            continue
+        collected = datetime.strptime(d, "%Y%m%d").date()
+        for raw in json.loads(path.read_text(encoding="utf-8")):
+            try:
+                published = datetime.strptime(raw["published"], "%Y-%m-%d %H:%M").replace(tzinfo=timezone.utc)
+            except (KeyError, TypeError, ValueError):
+                continue
+            item = NewsItem(headline=f"{raw.get('title', '').strip()} - BBC", link=raw.get("link", ""),
+                            published=published, collected=collected, summary=(raw.get("summary") or "").strip())
+            key = normalize(item.title)
+            if not item.title or not item.link or key in seen or not start <= published < end:
+                continue
+            if is_index_page(item.headline, team_aliases) or _is_stale_preview(item, played):
+                continue
+            seen.add(key)
+            items.append(item)
+    return sorted(items, key=_news_order)
+
+
+def match_score(block: str) -> Optional[Tuple[int, int]]:
+    """(home goals, away goals) of a collected match block."""
+    m = _SCORE_LINE_RE.search(block)
+    return (int(m.group(1)), int(m.group(2))) if m else None
+
+
+def _is_match_report(item: NewsItem, blocks: Sequence[str]) -> bool:
+    """A report of a match that's already on this edition's scoreboard:
+    "Arsenal 2-0 Everton: Konsa and Gabriel …", published after kickoff.
+    Requiring that match's own final score keeps "out for 2-3 weeks" and
+    "4-3-3" stories."""
+    if item.published is None:
+        return False
+    for block in blocks:
+        kickoff, score, opponent = match_kickoff(block), match_score(block), match_opponent(block)
+        if not (kickoff and score and opponent) or item.published < kickoff:
+            continue
+        a, b = score
+        if re.search(rf"(?<!\d)(?:{a}\s*[-–]\s*{b}|{b}\s*[-–]\s*{a})(?!\d)", item.title) and _mentions(item.title, opponent):
+            return True
+    return False
+
+
+def edition_news(token: str, team_name: str, start: datetime, end: datetime, run_date: datetime,
+                 blocks: Sequence[str] = (), root: Path = DATA_ROOT) -> List[NewsItem]:
+    """The stories an edition is generated from: BBC's club feed merged with
+    Google News, minus match reports already on the scoreboard.
+
+    BBC wins a duplicate because it carries the summary. Google's titles for
+    BBC stories often differ from BBC's own, so on a day the BBC feed gave
+    stories, Google's BBC items are dropped instead of matched.
+
+    Only generation uses this; the evaluation reads what was actually used
+    from inputs/{team}.json, and editions from before it existed keep being
+    scored against load_news alone, so their scores don't move.
+    """
+    played = played_matches(blocks)
+    bbc = load_bbc_news(token, team_name, start, end, run_date, played, root)
+    bbc_days = {item.collected for item in bbc}
+    seen = {normalize(item.title) for item in bbc}
+    merged = list(bbc)
+    for item in load_news(token, team_name, start, end, run_date, played, root):
+        if normalize(item.title) in seen:
+            continue
+        if item.outlet.startswith("BBC") and item.collected in bbc_days:
+            continue
+        merged.append(item)
+    return sorted((i for i in merged if not _is_match_report(i, blocks)), key=_news_order)
+
+
+# ─────────────────────────── table and injuries ─────────────────────────────
+
+def load_overview(token: str, start: datetime, end: datetime, run_date: datetime,
+                  root: Path = DATA_ROOT) -> Optional[dict]:
+    """The newest FotMob table/injury snapshot collected at or after the
+    edition's end, or None. An older one (Monday's collection failed, so
+    Sunday's is the newest) predates the weekend's matches: its table and
+    injuries would contradict the scoreboard in the same email."""
+    for d in reversed(folder_dates(start, run_date)):
+        path = root / "fotmob" / d / f"team_daily_report_{token}_overview.json"
+        if not path.exists():
+            continue
+        overview = json.loads(path.read_text(encoding="utf-8"))
+        try:
+            collected = datetime.strptime(overview.get("collected_at") or "", "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+        except ValueError:
+            continue
+        return overview if collected >= end else None
+    return None
