@@ -168,7 +168,7 @@ python -m unittest discover -s tests
 | `dashboard.yaml` | After any of the workflows above finish | Rebuild + deploy the status dashboard (each week's stored summary.json and gate.json) |
 | `tests.yaml` | Every push and pull request | Unit tests + the golden regression cases (no secrets needed) |
 
-The three are chained instead of scheduled separately so a newsletter is never generated before the weekend's matches are collected. GitHub starts scheduled runs hours late (about 5 hours in Oct 2026), so the whole chain starts late too.
+The three are chained instead of scheduled separately so a newsletter is never generated before the weekend's matches are collected. GitHub starts scheduled runs hours late (5 to 7 hours in Oct–Nov 2026), so the whole chain starts late too.
 
 Required GitHub Secrets: `OPENAI_API_KEY`, `GCP_SA_KEY`, `GOOGLE_CLOUD_EMAIL`, `GOOGLE_CLOUD_SPREADSHEET_URL`, `SMTP_USERNAME`, `SMTP_PASSWORD`. Optional: `ALERT_EMAIL` (where alerts go; defaults to `SMTP_USERNAME`).
 

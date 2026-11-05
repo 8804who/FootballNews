@@ -2,15 +2,15 @@
 
 # Football News
 
-축구 팀의 소식을 수집 후 뉴스레터를 생성해 매주 이메일로 발송하는 구독자에게 전송하는 서비스
+축구 팀의 소식을 수집해 뉴스레터를 생성하고 매주 구독자에게 이메일로 발송하는 서비스
 
-## 워크 플로우
+## 워크플로우
 
-1. **수집** — FotMob과 Google News RSS에서 지정된 프리미어리그 구단들의 경기 리포트와 이적 소식을 매일 수집. 매 실행이 최근 3일을 다시 수집하므로, 하루 수집이 실패해도 다음 실행이 채움
-2. **생성** — 매주 월요일 아침 수집이 성공하면, 직전 한 주(월요일 00:00 UTC → 다음 월요일 00:00 UTC)의 구단별 뉴스레터 생성. 경기와 기사는 킥오프/발행 시각 기준으로 골라 한 번씩만 실림
-3. **평가** — 생성된 뉴스레터를 원본 데이터와 대조해 평가(스코어, 분 단위 경기 사실, 각 기사 항목과 링크한 원문 비교, 의미를 보는 LLM 판정기)하고 토큰·비용을 기록. 이어서 호마다 예/아니오 점검(틀리거나 빠지거나 반복된 경기, 다른 구단 소식, 엉뚱한 링크)을 수행. 점검 결과는 발송을 막지 않고 대시보드에 표시
+1. **수집** — FotMob과 Google News RSS에서 지정된 프리미어리그 구단들의 경기 리포트와 이적 소식을 매일 수집. 매 실행이 최근 3일을 다시 수집하므로 하루 수집이 실패해도 다음 실행이 채움
+2. **생성** — 매주 월요일 아침 수집이 성공하면 직전 한 주(월요일 00:00 UTC → 다음 월요일 00:00 UTC)의 구단별 뉴스레터 생성. 경기와 기사는 킥오프/발행 시각 기준으로 골라 한 번씩만 실림
+3. **평가** — 생성된 뉴스레터를 원본 데이터와 대조해 평가하고(스코어, 분 단위 경기 사실, 각 기사 항목과 링크한 원문 비교, 의미를 보는 LLM 판정기) 토큰·비용을 기록. 이어서 호마다 틀리거나 빠지거나 반복된 경기, 다른 구단 소식, 엉뚱한 링크가 있는지 예/아니오로 점검. 점검 결과는 발송을 막지 않고 대시보드에 표시
 4. **발송** — 모든 구단의 뉴스레터를 구독자에게 발송. 수신거부한 주소와 이미 이번 호를 받은 구독자는 제외. 발송을 멈추거나 실패로 만드는 건 파이프라인 오류(단계 실패, 파일 누락, 발송 실패)뿐
-5. **게시** — 구독자 수, 워크플로우 상태, 평가 점수 이력, 호별 점검 결과 확인 용 대시보드 생성 및 배포
+5. **게시** — 구독자 수, 워크플로우 상태, 평가 점수 이력, 호별 점검 결과 확인용 대시보드 생성 및 배포
 
 ## 아키텍처
 
@@ -31,7 +31,7 @@
      └─ summarizers/llm.py (LLMSummarizer)
           → ChatOpenAI. prompt.yml 규칙은 시스템 메시지, example.yml few-shot 예시는
             이전 대화 턴, 실제 입력은 마지막 메시지로 전달
-          → 모델은 기사를 [N1], [N2]…로 인용하고, summarizers/citations.py가
+          → 모델은 기사를 [N1], [N2]…로 인용하고 summarizers/citations.py가
             이 태그를 수집한 기사 링크로 바꿈
      └─ evaluate/evaluate_main.py → report.md + summary.json (지표 v2, 판정기 포함, usage.json 기반 비용)
      └─ evaluate/gate.py          → 예/아니오 점검 → gate.json, 대시보드에 표시 (발송은 막지 않음)
@@ -58,7 +58,7 @@ team_names.py           구단 이름 표기("Man Utd", "Spurs", "토트넘")를
 notify.py               워크플로우가 실패하면 운영자에게 알림 메일 발송
 
 scrappers/
-  fotmob.py              Playwright로 FotMob 경기 페이지에서 이벤트/통계/교체/득점/카드를 추출합니다.
+  fotmob.py              Playwright로 FotMob 경기 페이지에서 이벤트/통계/교체/득점/카드를 추출
   news_rss.py             Google RSS 뉴스 수집
   fbref.py, fpl.py         사용하지 않음
 
@@ -102,11 +102,11 @@ tests/                    단위 테스트 (python -m unittest discover -s tests
 
 | 파일 | 용도 |
 |---|---|
-| `api.yml` | API 키/인증정보(Github Workflow에서는 Github Secrets 사용), 선택 항목 `ALERT_EMAIL` |
+| `api.yml` | API 키/인증정보(GitHub Actions에서는 GitHub Secrets 사용), 선택 항목 `ALERT_EMAIL` |
 | `setting.yml` | 대상 구단 목록, 사용할 LLM 모델, 메일 하단 링크(`newsletter.signup_url`, `newsletter.unsubscribe_url`) |
 | `prompt.yml` | LLM 시스템 프롬프트 및 작업별 프롬프트 |
 | `example.yml` | 뉴스레터 작성 few-shot (가상의 이름만 사용) |
-| `teams.yml` | FotMob 팀 정보(ID, 팀명) 매핑 정보, 구단별 다른 표기(`aliases`) |
+| `teams.yml` | FotMob 팀 정보(ID, 팀명) 매핑, 구단별 다른 표기(`aliases`) |
 
 ## 설치
 
@@ -120,7 +120,7 @@ playwright install chromium
 ## 사용법
 
 ```bash
-# 구단 별 데이터 수집
+# 구단별 데이터 수집
 python collect_news.py
 python collect_news.py --team Arsenal
 
@@ -169,7 +169,7 @@ python -m unittest discover -s tests
 | `dashboard.yaml` | 위 워크플로우 완료 후 | 상태 대시보드 재생성 및 배포 (주마다 저장된 summary.json, gate.json 사용) |
 | `tests.yaml` | 모든 push, pull request | 단위 테스트 + 골든 회귀 사례 (시크릿 불필요) |
 
-세 워크플로우를 각자의 스케줄 대신 하나로 연결해, 주말 경기가 수집되기 전에 뉴스레터가 생성되는 일이 없도록 했습니다. GitHub의 스케줄 실행은 몇 시간씩 늦게 시작되므로(2026년 10월 기준 약 5시간) 전체 흐름도 그만큼 늦게 시작됩니다.
+세 워크플로우를 각자의 스케줄 대신 하나로 연결해 주말 경기가 수집되기 전에 뉴스레터가 생성되는 일이 없도록 했습니다. GitHub의 스케줄 실행은 몇 시간씩 늦게 시작되므로(2026년 10~11월 기준 5~7시간) 전체 흐름도 그만큼 늦게 시작됩니다.
 
 필요한 GitHub Secrets: `OPENAI_API_KEY`, `GCP_SA_KEY`, `GOOGLE_CLOUD_EMAIL`, `GOOGLE_CLOUD_SPREADSHEET_URL`, `SMTP_USERNAME`, `SMTP_PASSWORD`. 선택: `ALERT_EMAIL` (알림 받을 주소, 기본값은 `SMTP_USERNAME`).
 
@@ -177,8 +177,8 @@ python -m unittest discover -s tests
 
 워크플로우가 실패하면 운영자에게 메일이 갑니다. 내용 문제로는 발송이 멈추지 않습니다.
 
-- **대시보드에 구단이 표시됨** — 그 구단의 카드에 이유가 있습니다: 틀리거나 빠지거나 반복된 경기, 끝났는데 수집되지 않은 경기, few-shot 예시 문구, 다른 구단의 소식, 이 구단의 기사가 아닌 링크. 해당 호는 이미 발송됐으니, 다음 주 전에 원인을 고치세요(`--date`/`--team`으로 다시 생성해 로컬에서 확인하면 편합니다).
-- **월요일 수집 실패** — 수집이 성공할 때까지 뉴스레터를 만들지 않습니다. `collect_news`를 다시 실행하거나(월요일이면 뉴스레터도 다시 시작), `send_after`를 체크하고 `generate_newsletter`를 실행하세요.
+- **대시보드에 구단이 표시됨** — 그 구단의 카드에 이유가 있습니다: 틀리거나 빠지거나 반복된 경기, 끝났는데 수집되지 않은 경기, few-shot 예시 문구, 다른 구단의 소식, 이 구단의 기사가 아닌 링크. 해당 호는 이미 발송됐으니 다음 주 전에 원인을 고치세요(`--date`/`--team`으로 다시 생성해 로컬에서 확인하면 편합니다).
+- **월요일 수집 실패** — 수집이 성공할 때까지 뉴스레터를 만들지 않습니다. `collect_news`를 다시 실행하거나(월요일이면 뉴스레터도 다시 시작) `send_after`를 체크하고 `generate_newsletter`를 실행하세요.
 - **일부 메일 발송 실패** — `send_mail`을 다시 실행하세요. `sent.json` 덕분에 이미 받은 구독자에게는 다시 보내지 않습니다.
-- **수신거부** — 모든 메일에 수신거부 링크와 `List-Unsubscribe` 헤더가 있습니다. 기본값은 발신 주소로 메일을 보내는 방식이고, `setting.yml`의 `newsletter.unsubscribe_url`에 Google Form 주소를 넣으면 그 폼을 씁니다(`{email}`은 자동으로 채워짐). 구독자 스프레드시트의 "수신거부" 시트에 있는 주소로는 발송하지 않습니다.
+- **수신거부** — 모든 메일에 수신거부 링크와 `List-Unsubscribe` 헤더가 있습니다. 기본값은 발신 주소로 메일을 보내는 방식이고 `setting.yml`의 `newsletter.unsubscribe_url`에 Google Form 주소를 넣으면 그 폼을 씁니다(`{email}`은 자동으로 채워짐). 구독자 스프레드시트의 "수신거부" 시트에 있는 주소로는 발송하지 않습니다.
 - **개인정보** — 이 저장소는 공개 저장소라 워크플로우 로그도 공개됩니다. `send_mail.py`는 마스킹한 주소(`j***@gmail.com`)만 로그에 남깁니다.
