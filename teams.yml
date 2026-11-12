@@ -57,6 +57,16 @@ fotmob:
       id: 8456
     - name: Tottenham Hotspur
       id: 8586
+    - name: Paris Saint-Germain
+      id: 9847
+    - name: Barcelona
+      id: 8634
+    - name: Real Madrid
+      id: 8633
+    - name: Atletico Madrid
+      id: 9906
+    - name: Bayern Munich
+      id: 9823
 
 # BBC Sport's club feeds (feeds.bbci.co.uk/sport/football/teams/{slug}/rss.xml),
 # whose items carry a one-line summary. A club without a slug is skipped.
@@ -74,6 +84,16 @@ bbc:
       slug: manchester-city
     - name: Tottenham Hotspur
       slug: tottenham-hotspur
+    - name: Paris Saint-Germain
+      slug: paris-st-germain
+    - name: Barcelona
+      slug: barcelona
+    - name: Real Madrid
+      slug: real-madrid
+    - name: Atletico Madrid
+      slug: atletico-madrid
+    - name: Bayern Munich
+      slug: bayern-munich
 
 # Other spellings of each club (FotMob's short names, headlines, the model's
 # output, sign-up form answers), so they all resolve to the name above.
@@ -85,6 +105,12 @@ aliases:
   Arsenal: [아스날, 아스널]
   Manchester City: [Man City, 맨시티, 맨체스터 시티]
   Tottenham Hotspur: [Tottenham, Spurs, 토트넘, 토트넘 홋스퍼]
+  # Never plain "Paris": "FC" is ignored, so it would also match Paris FC.
+  Paris Saint-Germain: [PSG, Paris SG, Paris St-Germain, 파리 생제르맹, 파리 생제르망, 피에스지]
+  Barcelona: [Barca, FC Barcelona, 바르셀로나, 바르사, 바르샤]
+  Real Madrid: [레알 마드리드, 레알]
+  Atletico Madrid: [Atletico, Atleti, Atletico de Madrid, 아틀레티코 마드리드, 아틀레티코, AT 마드리드]
+  Bayern Munich: [Bayern München, Bayern, FC Bayern, 바이에른 뮌헨, 바이에른, 뮌헨]
 
 # How each club's name is said in Korean, so a particle after the English
 # name agrees with it: "Arsenal과" (아스널), "Chelsea와" (첼시),
@@ -164,3 +190,63 @@ readings:
   Como: 코모
   Monaco: 모나코
   Marseille: 마르세유
+  # Ligue 1, LaLiga and the Bundesliga, spelled as FotMob writes them.
+  Paris FC: 파리 에프시
+  Lyon: 리옹
+  Nice: 니스
+  Rennes: 렌
+  Brest: 브레스트
+  Lorient: 로리앙
+  Lens: 랑스
+  Toulouse: 툴루즈
+  Strasbourg: 스트라스부르
+  Auxerre: 오세르
+  Le Mans: 르망
+  Angers: 앙제
+  Troyes: 트루아
+  Le Havre: 르아브르
+  Nantes: 낭트
+  Metz: 메스
+  Atleti: 아틀레티
+  Barca: 바르사
+  Barça: 바르사
+  Real Betis: 레알 베티스
+  Real Sociedad: 레알 소시에다드
+  Sevilla: 세비야
+  Athletic Club: 아틀레틱 클루브
+  Deportivo A Coruña: 데포르티보 라코루냐
+  Racing Santander: 라싱 산탄데르
+  Celta Vigo: 셀타 비고
+  Deportivo Alavés: 데포르티보 알라베스
+  Alavés: 알라베스
+  Espanyol: 에스파뇰
+  Rayo Vallecano: 라요 바예카노
+  Getafe: 헤타페
+  Osasuna: 오사수나
+  Levante: 레반테
+  Elche: 엘체
+  Valencia: 발렌시아
+  Málaga: 말라가
+  Mallorca: 마요르카
+  Freiburg: 프라이부르크
+  RB Leipzig: 라이프치히
+  Werder Bremen: 베르더 브레멘
+  Elversberg: 엘버스베르크
+  VfB Stuttgart: 슈투트가르트
+  Eintracht Frankfurt: 아인트라흐트 프랑크푸르트
+  Frankfurt: 프랑크푸르트
+  Hamburger SV: 함부르크
+  Mainz 05: 마인츠
+  Mainz: 마인츠
+  Paderborn: 파더보른
+  Augsburg: 아우크스부르크
+  1. FC Köln: 쾰른
+  Köln: 쾰른
+  Union Berlin: 우니온 베를린
+  Schalke 04: 샬케
+  Borussia Mönchengladbach: 보루시아 묀헨글라트바흐
+  M'gladbach: 묀헨글라트바흐
+  FC Heidenheim: 하이덴하임
+  Heidenheim: 하이덴하임
+  Wolfsburg: 볼프스부르크
+  St. Pauli: 장크트 파울리

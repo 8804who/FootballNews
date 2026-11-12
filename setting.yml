@@ -5,6 +5,11 @@ teams:
   - name: Arsenal
   - name: Manchester City
   - name: Tottenham Hotspur
+  - name: Paris Saint-Germain
+  - name: Barcelona
+  - name: Real Madrid
+  - name: Atletico Madrid
+  - name: Bayern Munich
 
 model: gpt-5-mini
 # Newer models (gpt-5.4+) don't reason unless asked. The Oct 2026 comparison

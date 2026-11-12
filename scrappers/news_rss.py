@@ -115,13 +115,14 @@ class NewsRSS:
             return None
 
         team_aliases = aliases(team_name)
-        items = []
+        items, seen = [], set()
         for entry in feed.entries:
             title = (entry.get("title") or "").strip()
             link = (entry.get("link") or "").split("?")[0]
             summary = _clean_summary(entry.get("summary"))
-            if not title or not link or any(p in link for p in _BBC_SKIP_PATHS):
+            if not title or not link or link in seen or any(p in link for p in _BBC_SKIP_PATHS):
                 continue
+            seen.add(link)  # some club feeds (Real Madrid's) list each story twice
             if not (_mentions_team(title, team_aliases) or _mentions_team(_first_sentence(summary), team_aliases)):
                 continue
             if is_index_page(title, team_aliases):

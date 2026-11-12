@@ -20,9 +20,22 @@ class CanonicalTest(unittest.TestCase):
         self.assertEqual(canonical("TottenhamHotspur"), "Tottenham Hotspur")
         self.assertEqual(canonical(" manchester city "), "Manchester City")
 
+    def test_european_clubs_resolve_from_fotmob_and_headline_spellings(self):
+        self.assertEqual(canonical("PSG"), "Paris Saint-Germain")
+        self.assertEqual(canonical("Paris Saint-Germain"), "Paris Saint-Germain")
+        self.assertEqual(canonical("Bayern München"), "Bayern Munich")
+        self.assertEqual(canonical("Atlético Madrid"), "Atletico Madrid")
+        self.assertEqual(canonical("Atleti"), "Atletico Madrid")
+        self.assertEqual(canonical("Barça"), "Barcelona")
+        self.assertEqual(canonical("레알 마드리드"), "Real Madrid")
+
     def test_other_clubs_are_not_ours(self):
         self.assertIsNone(canonical("Leeds United"))
         self.assertIsNone(canonical(""))
+        # "FC" is ignored when matching, so PSG must never have a bare "Paris" alias.
+        self.assertIsNone(canonical("Paris FC"))
+        self.assertIsNone(canonical("Real Betis"))
+        self.assertIsNone(canonical("Borussia Dortmund"))
 
 
 class NormalizeTest(unittest.TestCase):

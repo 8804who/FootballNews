@@ -6,7 +6,7 @@ Collects football club news, generates a newsletter, and sends it to subscribers
 
 ## Workflow
 
-1. **Collect** — Collect match reports and transfer news for configured Premier League clubs daily, from FotMob and Google News RSS. Each run looks 3 days back, so a day whose run failed is picked up by the next one.
+1. **Collect** — Collect match reports and transfer news for configured European clubs (Premier League, LaLiga, Bundesliga, Ligue 1) daily, from FotMob and Google News RSS. Each run looks 3 days back, so a day whose run failed is picked up by the next one.
 2. **Generate** — Every Monday, once that morning's collection succeeds, generate a newsletter per club for the week before it (Monday 00:00 UTC → Monday 00:00 UTC). Matches and headlines are picked by kickoff/publish time, so each appears in exactly one edition.
 3. **Evaluate** — Score each newsletter against its source data (scores, minute-by-minute match facts, each news item against the headline it links to, plus an LLM judge for meaning) and record tokens and cost. Then run yes/no checks on each edition (wrong, missing or repeated matches, another club's news, foreign links). They hold nothing: the results go to the dashboard.
 4. **Send** — Send every club's newsletter to its subscribers, skipping unsubscribed addresses and anyone who already received this edition. Only a pipeline error (a failed step, a missing file, a failed send) stops or fails a send.

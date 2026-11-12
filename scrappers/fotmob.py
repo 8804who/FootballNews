@@ -78,8 +78,9 @@ class FotMobCrawler:
 
     def get_team_matches(self, start_date, end_date, team_data, team_id):
         """Collect raw data for the team's recent matches"""
-        team_name = team_data.get('details', {}).get('name', 'Unknown')
-        team_name = self._transform_team_name(team_name)
+        # Home/away by FotMob's team id: fixtures use short names that differ
+        # from the team page's ("PSG" vs "Paris Saint-Germain").
+        own_id = str(team_data.get('details', {}).get('id') or team_id)
 
         matches = []
 
@@ -118,7 +119,7 @@ class FotMobCrawler:
                     "home_team": home_team, 
                     "away_team": away_team,
                     "competition": details['competition'],
-                    "venue": "Home" if home_team == team_name else "Away",
+                    "venue": "Home" if str(match.get('home', {}).get('id')) == own_id else "Away",
                     "stats": details['stats'],
                     "events": details['events']
                 }
@@ -216,7 +217,7 @@ class FotMobCrawler:
         return report_data
 
 
-    def get_overview(self, team_data, league_name="Premier League"):
+    def get_overview(self, team_data):
         """League table and injury list for the newsletter's 순위 / 결장 blocks,
         or None. The team page's shape differs between the intercepted API
         response and the __NEXT_DATA__ fallback, so every key is optional and
@@ -225,7 +226,7 @@ class FotMobCrawler:
             return {
                 "collected_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
                 "team_id": (team_data.get('details') or {}).get('id'),
-                "league": self._league_table(team_data, league_name),
+                "league": self._league_table(team_data),
                 "injuries": self._injuries(team_data),
             }
         except Exception as e:
@@ -233,9 +234,10 @@ class FotMobCrawler:
             return None
 
 
-    def _league_table(self, team_data, league_name):
+    def _league_table(self, team_data):
         """{league_name, league_id, rows} for the domestic league, or None.
-        team_data['table'] can also hold a Champions League phase table."""
+        team_data['table'] can also hold a Champions League phase table, so
+        the club's primary league (Ligue 1, LaLiga, ...) is picked by id."""
         tables = team_data.get('table') or []
         candidates = []
         for entry in tables if isinstance(tables, list) else []:
@@ -245,7 +247,16 @@ class FotMobCrawler:
                 candidates.append((data, rows))
         if not candidates:
             return None
-        data, rows = next(((d, r) for d, r in candidates if d.get('leagueName') == league_name), candidates[0])
+        details = team_data.get('details') or {}
+        primary_id = details.get('primaryLeagueId')
+        primary_name = details.get('primaryLeagueName') or "Premier League"
+
+        def is_primary(d):
+            if primary_id is not None and d.get('leagueId') is not None:
+                return d.get('leagueId') == primary_id
+            return d.get('leagueName') == primary_name
+
+        data, rows = next(((d, r) for d, r in candidates if is_primary(d)), candidates[0])
         keep = ("idx", "id", "name", "shortName", "played", "wins", "draws", "losses", "scoresStr", "goalConDiff", "pts")
         return {
             "league_name": data.get('leagueName'),
@@ -304,18 +315,6 @@ class FotMobCrawler:
         return fixtures
 
     
-    def _transform_team_name(self, team_name):
-        team_name_dict = {
-            "Manchester United": "Man United",
-            "Liverpool": "Liverpool",
-            "Chelsea": "Chelsea",
-            "Arsenal": "Arsenal",
-            "Manchester City": "Man City",
-            "Tottenham Hotspur": "Tottenham"
-        }
-        return team_name_dict.get(team_name, team_name)
-    
-
     def _get_competition(self, page):
         try:
             container = page.locator('[class*="MFHeaderLeagueCSS"]')

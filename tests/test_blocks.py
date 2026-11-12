@@ -3,8 +3,9 @@ they're built from."""
 
 import sys
 import unittest
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
+from unittest.mock import patch
 
 from markdown_it import MarkdownIt
 
@@ -189,6 +190,32 @@ class OverviewExtractionTest(unittest.TestCase):
         self.assertEqual(result["league"]["league_id"], 47)
         self.assertEqual(result["league"]["rows"][0]["name"], "Arsenal")
         self.assertEqual([p["name"] for p in result["injuries"]], ["William Saliba"])
+
+    def test_the_clubs_own_league_is_picked_outside_england(self):
+        data = {
+            "details": {"id": 9847, "primaryLeagueId": 53, "primaryLeagueName": "Ligue 1"},
+            "table": [{"data": {"leagueName": "Champions League", "leagueId": 42, "table": {"all": [{"idx": 1, "name": "X"}]}}},
+                      {"data": {"leagueName": "Ligue 1", "leagueId": 53, "table": {"all": [{"idx": 1, "name": "Paris Saint-Germain"}]}}}],
+        }
+        result = FotMobCrawler().get_overview(data)
+        self.assertEqual(result["league"]["league_name"], "Ligue 1")
+        self.assertEqual(result["league"]["rows"][0]["name"], "Paris Saint-Germain")
+
+    def test_home_and_away_come_from_the_team_id_not_its_name(self):
+        # FotMob's fixtures say "PSG" while the team page says "Paris Saint-Germain".
+        def fixture(home, away):
+            return {"status": {"utcTime": "2026-11-08T20:00:00.000Z", "finished": True, "scoreStr": "2 - 1"},
+                    "pageUrl": "/m", "opponent": {"name": "Lyon"}, "home": home, "away": away}
+        data = {"details": {"id": 9847, "name": "Paris Saint-Germain"},
+                "fixtures": {"allFixtures": {"fixtures": [
+                    fixture({"id": 9847, "name": "PSG"}, {"id": 9748, "name": "Lyon"}),
+                    fixture({"id": 9748, "name": "Lyon"}, {"id": 9847, "name": "PSG"})]}}}
+        crawler = FotMobCrawler()
+        crawler._analyze_match_details = lambda url: {"competition": "Ligue 1", "stats": {}, "events": []}
+        start = datetime(2026, 11, 7, tzinfo=timezone.utc)
+        with patch("scrappers.fotmob.time.sleep"):
+            matches = crawler.get_team_matches(start, start + timedelta(days=3), data, 9847)
+        self.assertEqual([m["venue"] for m in matches], ["Home", "Away"])
 
     def test_an_unexpected_shape_costs_only_the_blocks(self):
         result = FotMobCrawler().get_overview({"details": {}, "table": "nope", "squad": {"squad": None}})

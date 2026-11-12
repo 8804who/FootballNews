@@ -52,6 +52,9 @@ class ParticleTest(unittest.TestCase):
         self.assertEqual(fix_particles("Hoffenheim로 이적")[0], "Hoffenheim으로 이적")
         self.assertEqual(fix_particles("Man City을 꺾고")[0], "Man City를 꺾고")
         self.assertEqual(fix_particles("Bayern München와의 경기")[0], "Bayern München과의 경기")
+        self.assertEqual(fix_particles("Köln와 비겼습니다")[0], "Köln과 비겼습니다")
+        self.assertEqual(fix_particles("Sevilla을 꺾고")[0], "Sevilla를 꺾고")
+        self.assertEqual(fix_particles("M'gladbach으로 이적")[0], "M'gladbach로 이적")
 
     def test_compound_endings_and_unknown_clubs_are_left_alone(self):
         for text in ("Arsenal이라는 팀", "Sample Town와 비김", "Liverpool을 꺾고"):

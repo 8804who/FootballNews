@@ -66,6 +66,13 @@ class BBCFeedTest(unittest.TestCase):
                 for i in range(9)]
         self.assertEqual(len(self.fetch(rss(*many))), 6)
 
+    def test_a_story_listed_twice_is_kept_once(self):
+        # Real Madrid's feed lists every story twice, which used up the six slots.
+        many = [(f"Arsenal story {i}", f"https://www.bbc.co.uk/sport/football/articles/b{i}", "Arsenal news.", recent())
+                for i in range(4)]
+        self.assertEqual([i["title"] for i in self.fetch(rss(*many, *many))],
+                         [f"Arsenal story {i}" for i in range(4)])
+
 
 class DataDir(unittest.TestCase):
     def setUp(self):
