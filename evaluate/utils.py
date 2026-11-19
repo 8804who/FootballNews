@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import List, Optional, Set, Tuple
 
 import edition
+from team_names import team_from_token
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_ROOT = BASE_DIR / "datas"
@@ -165,7 +166,7 @@ def load_fotmob_for_team(
     """
     start, end = edition.edition_window(newsletter_date)
     blocks = load_match_blocks(token, newsletter_date)
-    text = edition.matches_markdown(token.replace("_", " "), blocks, start, end)
+    text = edition.matches_markdown(team_from_token(token), blocks, start, end)
 
     matches = _parse_fotmob_matches(text)
     players = _parse_source_players(text)
@@ -197,7 +198,7 @@ def load_news_items_for_team(token: str, newsletter_date: datetime) -> List["edi
     start, end = edition.edition_window(newsletter_date)
     blocks = edition.load_matches(token, start, end, newsletter_date, root=DATA_ROOT)
     return edition.load_news(
-        token, token.replace("_", " "), start, end, newsletter_date,
+        token, team_from_token(token), start, end, newsletter_date,
         edition.played_matches(blocks), root=DATA_ROOT,
     )
 

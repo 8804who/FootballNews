@@ -41,6 +41,7 @@ from evaluate.evaluate_main import LABELS, METRICS_VERSION, WEIGHTS, evaluate_ne
 from evaluate.utils import BASE_DIR, load_inputs, parse_date
 from generate_newsletter import generate_edition, write_edition, write_usage
 from summarizers.llm import LLMSummarizer
+from team_names import file_token
 
 RUNS_YML = Path(__file__).resolve().parent / "runs.yml"
 OUT = Path(__file__).resolve().parent / "runs"
@@ -58,7 +59,7 @@ def _generate(run: dict, date_str: str, team: str) -> Dict:
         examples=_yaml(run.get("examples"), "example.yml"),
         reasoning_effort=run.get("reasoning_effort"),
     )
-    path = OUT / run["name"] / date_str / f"newsletter_{team.replace(' ', '_')}.md"
+    path = OUT / run["name"] / date_str / f"newsletter_{file_token(team)}.md"
     path.parent.mkdir(parents=True, exist_ok=True)
     started = time.perf_counter()
     try:
@@ -74,7 +75,7 @@ def _generate(run: dict, date_str: str, team: str) -> Dict:
 def _existing(run: dict, date_str: str, team: str) -> Dict:
     """A previous run's output, to re-score after a metric change without
     regenerating (which would cost money and change the outputs)."""
-    path = OUT / run["name"] / date_str / f"newsletter_{team.replace(' ', '_')}.md"
+    path = OUT / run["name"] / date_str / f"newsletter_{file_token(team)}.md"
     if not path.exists():
         return {"run": run["name"], "date": date_str, "team": team, "path": None, "calls": [],
                 "error": "no output to re-score"}
@@ -86,7 +87,6 @@ def _score(task: Dict, sources: Dict, use_judge: bool, judge_model: Optional[str
     if task["error"]:
         return task
     token = task["path"].stem.replace("newsletter_", "")
-    date = parse_date(task["date"])
     task["eval"] = evaluate_newsletter(task["path"], use_judge=use_judge, judge_model=judge_model)
     # Style of the sent text, and of the model's own output before tidy()
     # (editions from before inputs records were kept only have the former).
@@ -94,8 +94,7 @@ def _score(task: Dict, sources: Dict, use_judge: bool, judge_model: Optional[str
     raw = (load_inputs(task["path"]) or {}).get("raw")
     task["style"] = style.evaluate(text)
     task["style_raw"] = style.evaluate("\n\n".join(raw.values())) if raw else task["style"]
-    task["gate"] = gate.check_edition(token, date, task["path"].read_text(encoding="utf-8"),
-                                      sources[(task["run"], task["date"])])
+    task["gate"] = gate.check_edition(token, text, sources[(task["run"], task["date"])])
     return task
 
 
@@ -227,9 +226,9 @@ def main() -> None:
         print("generated; scoring…")
 
     # Per run and date: each edition is checked against its own inputs record.
-    sources = {(r["name"], d): {t.replace(" ", "_"): gate.club_sources(
-        t.replace(" ", "_"), parse_date(d),
-        load_inputs(OUT / r["name"] / d / f"newsletter_{t.replace(' ', '_')}.md")) for t in teams}
+    sources = {(r["name"], d): {file_token(t): gate.club_sources(
+        file_token(t), parse_date(d),
+        load_inputs(OUT / r["name"] / d / f"newsletter_{file_token(t)}.md")) for t in teams}
         for r in runs for d in dates}
     with ThreadPoolExecutor(max_workers=args.workers if args.judge else 1) as pool:
         tasks = list(pool.map(lambda t: _score(t, sources, args.judge, args.judge_model), tasks))

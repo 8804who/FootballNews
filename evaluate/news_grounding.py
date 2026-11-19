@@ -23,9 +23,9 @@ import re
 from typing import Dict, List, Optional, Set
 
 from evaluate.utils import extract_links, strip_links
+from newsletter_sections import NEWS_HEADING_RE
 from team_names import canonical
 
-_SECTION_RE = re.compile(r"^##\s.*(이적|뉴스)", re.MULTILINE)
 # Lookarounds rather than \b: Hangul is a word character, so a name followed
 # by a particle ("Sancho가") has no word boundary and \b skipped it entirely.
 _TOKEN_RE = re.compile(r"(?<![A-Za-zÀ-ÿ])[A-ZÀ-ÖØ-Þ][A-Za-zÀ-ÿ'\-]{2,}(?![A-Za-zÀ-ÿ])")
@@ -39,7 +39,7 @@ _IGNORE: Set[str] = {
 
 def extract_news_section(text: str) -> str:
     """Return the '이적 & 뉴스' section (from its H2 heading to the next H2 / EOF)."""
-    m = _SECTION_RE.search(text)
+    m = NEWS_HEADING_RE.search(text)
     if not m:
         return ""
     rest = text[m.end():]

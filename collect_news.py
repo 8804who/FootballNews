@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from config import BBC_TEAMS, FOTMOB_TEAMS, TEAMS
 from scrappers.fotmob import fot_mob_crawler
 from scrappers.news_rss import news_rss
+from team_names import file_token
 
 # Each run re-collects the last few days, so a day whose run failed is picked
 # up by the next one. The repeats are harmless: edition.py selects matches by
@@ -20,7 +21,7 @@ def get_fotmob_data(team, start_date, end_date):
             return None
 
         target_team_id = fotmob_team['id']
-        team_name = fotmob_team['name'].replace(" ", "_")
+        team_name = file_token(fotmob_team['name'])
 
         raw_data = fot_mob_crawler.get_team_data(start_date, end_date, target_team_id)
         if raw_data is None:
@@ -49,7 +50,7 @@ def get_news_rss_data(team):
     news_items = news_rss.get_transfer_news_rss(team['name'])
     markdown_output = news_rss.get_news_rss_markdown(news_items, team['name'])
     out_dir = f"datas/news_rss/{datetime.now().strftime('%Y%m%d')}"
-    token = team['name'].replace(" ", "_")
+    token = file_token(team['name'])
     os.makedirs(out_dir, exist_ok=True)
     with open(f"{out_dir}/team_daily_report_{token}.md", "w") as f:
         f.write(markdown_output if markdown_output else "There is no transfer news this week.")

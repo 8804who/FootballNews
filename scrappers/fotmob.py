@@ -1,5 +1,4 @@
 from datetime import datetime, timezone, timedelta
-import requests
 import re
 import time
 
@@ -7,24 +6,6 @@ from playwright.sync_api import sync_playwright
 
 
 class FotMobCrawler:
-    def __init__(self):
-        self.base_url = "https://www.fotmob.com/api"
-        self.headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-            "Referer": "https://www.fotmob.com/"
-        }
-        
-
-    def _get_json(self, endpoint, params=None):
-        try:
-            response = requests.get(f"{self.base_url}/{endpoint}", headers=self.headers, params=params)
-            response.raise_for_status()
-            return response.json()
-        except requests.exceptions.RequestException as e:
-            print(f"Error fetching {endpoint}: {e}")
-            return None
-
-
     def _get_team_data(self, team_id):
         """Collect raw data for the team by intercepting the browser's API request"""
         team_data = None
@@ -593,8 +574,8 @@ class FotMobCrawler:
                 return None
             md += self.generate_transfers_markdown_report(data['transfers'])
         else:
-            return "Invalid report type."
-        
+            raise ValueError(f"Unknown report type: {report_type}")
+
         return md
 
 

@@ -2,43 +2,30 @@ import json
 import os
 import re
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 
 import requests
-from google.cloud import storage
-from google.oauth2 import service_account
-import google.auth
 
+import edition
+import gcs
 from config import TEAMS
 from google_sheet_parser import EMAIL_COLUMN, TEAM_COLUMN, google_sheet_parser
 from dashboard.render import render
 from evaluate import gate
 from evaluate.evaluate_main import LABELS, METRICS_VERSION, WEIGHTS, evaluate_newsletter, render_report_json
 from evaluate.utils import NEWSLETTER_ROOT, resolve_newsletter_token
-from team_names import canonical
+from newsletter_sections import HEADLINE_TITLE_RE, SCOREBOARD, section_re
+from team_names import canonical, team_from_token
 
-BUCKET_NAME = "my-football-news"
-GCS_DATA_PREFIX = "football-news/datas"
+_SCOREBOARD_RE = section_re(SCOREBOARD)
 GCS_HISTORY_BLOB = "football-news/dashboard/eval-history.json"
 REPO = "8804who/FootballNews"
 WORKFLOW_SCHEDULES = {
-    "collect_news": "daily 09:30 KST",
+    "collect_news": "daily 09:00 KST",
     "generate_newsletter": "Mon, after collect_news",
     "send_mail": "Mon, after generate_newsletter",
 }
-SERVICE_ACCOUNT_FILE = "gen-lang-client.json"
-
-
-def _gcs_client():
-    scopes = ["https://www.googleapis.com/auth/cloud-platform"]
-    if os.path.exists(SERVICE_ACCOUNT_FILE):
-        credentials = service_account.Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=scopes)
-    else:
-        credentials, _ = google.auth.default(scopes=scopes)
-    return storage.Client(credentials=credentials, project=credentials.project_id)
-
-
 def fetch_subscribers():
     """Per-club counts of active subscribers (one per address, unsubscribed
     addresses left out). Team answers are matched through teams.yml's aliases,
@@ -128,34 +115,29 @@ def fetch_workflow_runs():
 
 
 def download_latest_week(client) -> str | None:
-    """Download the most recent newsletter week and the FotMob + RSS folders
-    its edition was built from into the real datas/ paths evaluate_main.py
-    reads — the same 9 folders generate_newsletter.yaml downloads. (RSS is
-    needed too: without it, every name that came from a headline is scored
-    as hallucinated.)"""
-    bucket = client.bucket(BUCKET_NAME)
-    it = client.list_blobs(bucket, prefix=f"{GCS_DATA_PREFIX}/newsletter/", delimiter="/")
+    """Download the most recent newsletter week (its newsletters, inputs/ and
+    gate.json) and return its date, or None if there is none."""
+    bucket = client.bucket(gcs.BUCKET_NAME)
+    it = client.list_blobs(bucket, prefix=f"{gcs.DATA_PREFIX}/newsletter/", delimiter="/")
     list(it)
     dates = sorted(p.split("/")[-2] for p in it.prefixes)
     if not dates:
         return None
     latest = dates[-1]
-
-    for blob in bucket.list_blobs(prefix=f"{GCS_DATA_PREFIX}/newsletter/{latest}/"):
-        local = Path("datas/newsletter") / latest / blob.name.split("/")[-1]
-        local.parent.mkdir(parents=True, exist_ok=True)
-        blob.download_to_filename(str(local))
-
-    base = datetime.strptime(latest, "%Y%m%d")
-    for i in range(0, 9):
-        d = (base - timedelta(days=i)).strftime("%Y%m%d")
-        for data_type in ("fotmob", "news_rss"):
-            for blob in bucket.list_blobs(prefix=f"{GCS_DATA_PREFIX}/{data_type}/{d}/"):
-                local = Path("datas") / data_type / d / blob.name.split("/")[-1]
-                local.parent.mkdir(parents=True, exist_ok=True)
-                blob.download_to_filename(str(local))
-
+    gcs.download_prefix(bucket, f"{gcs.DATA_PREFIX}/newsletter/{latest}/", f"datas/newsletter/{latest}", verbose=False)
     return latest
+
+
+def download_sources(client, date_str: str) -> None:
+    """The FotMob + RSS folders the week's edition was built from, into the
+    datas/ paths evaluate_main.py reads (RSS too: without it, every name that
+    came from a headline is scored as hallucinated). Only needed to score or
+    check a week CI didn't, so it's fetched only then."""
+    bucket = client.bucket(gcs.BUCKET_NAME)
+    run = datetime.strptime(date_str, "%Y%m%d")
+    for d in edition.folder_dates(edition.edition_window(run)[0], run):
+        for data_type in ("fotmob", "news_rss"):
+            gcs.download_prefix(bucket, f"{gcs.DATA_PREFIX}/{data_type}/{d}/", f"datas/{data_type}/{d}", verbose=False)
 
 
 def run_evaluation(date_str: str):
@@ -176,7 +158,7 @@ def run_evaluation(date_str: str):
 
 def load_summary(client, date_str: str):
     """The week's summary.json written by CI, if it uses the current metrics."""
-    blob = client.bucket(BUCKET_NAME).blob(f"{GCS_DATA_PREFIX}/evaluation/{date_str}/summary.json")
+    blob = client.bucket(gcs.BUCKET_NAME).blob(f"{gcs.DATA_PREFIX}/evaluation/{date_str}/summary.json")
     if not blob.exists():
         return None
     summary = json.loads(blob.download_as_text())
@@ -233,36 +215,36 @@ def extract_editions(date_str: str, checks: dict = None):
     for nf in sorted(date_dir.glob("*.md")):
         text = nf.read_text(encoding="utf-8")
         m = re.match(r"^#\s*(.+?)\s*[·\-]\s*주간.*?\(([^)]+)\)", text)
-        team = m.group(1).strip() if m else nf.stem.replace("newsletter_", "").replace("_", " ")
+        team = m.group(1).strip() if m else team_from_token(nf.stem.removeprefix("newsletter_"))
         if m and week_range is None:
             week_range = m.group(2).strip()
 
-        hm = re.search(r"헤드라인.*?\n\s*\*\*(.+?)\*\*", text)
+        hm = HEADLINE_TITLE_RE.search(text)
         headline = hm.group(1).strip() if hm else "(no headline found)"
 
         # The scoreboard's first row: the table under the 스코어보드 heading,
         # not the first table in the file (the 순위 block has one too).
         score_line = None
-        board = re.search(r"^##[^\n]*스코어보드[^\n]*\n(.*?)(?=^## |\Z)", text, re.MULTILINE | re.DOTALL)
+        board = _SCOREBOARD_RE.search(text)
         table_rows = [line for line in (board.group(1) if board else "").splitlines() if line.strip().startswith("|")]
         if len(table_rows) >= 3:
             cells = [c.strip() for c in table_rows[2].split("|")[1:-1]]
             if len(cells) >= 2:
                 score_line = f"{cells[0]}  {cells[1]}"
-        check = (checks or {}).get((resolve_newsletter_token(nf.stem) or "").replace("_", " "))
+        check = (checks or {}).get(team_from_token(resolve_newsletter_token(nf.stem) or ""))
         editions.append((team, score_line or "", headline, check))
     return editions, week_range
 
 
 def load_eval_history(client):
-    blob = client.bucket(BUCKET_NAME).blob(GCS_HISTORY_BLOB)
+    blob = client.bucket(gcs.BUCKET_NAME).blob(GCS_HISTORY_BLOB)
     if not blob.exists():
         return []
     return json.loads(blob.download_as_text())
 
 
 def save_eval_history(client, history):
-    blob = client.bucket(BUCKET_NAME).blob(GCS_HISTORY_BLOB)
+    blob = client.bucket(gcs.BUCKET_NAME).blob(GCS_HISTORY_BLOB)
     blob.upload_from_string(json.dumps(history, indent=2), content_type="application/json")
 
 
@@ -302,9 +284,9 @@ def main():
     print("Fetching workflow run history...")
     workflows = fetch_workflow_runs()
 
-    client = _gcs_client()
+    client = gcs.client()
 
-    print("Downloading latest newsletter week + source data...")
+    print("Downloading latest newsletter week...")
     latest_date = download_latest_week(client)
 
     eval_current = None
@@ -315,7 +297,11 @@ def main():
     history = load_eval_history(client)
 
     if latest_date:
-        summary = load_summary(client, latest_date) or run_evaluation(latest_date)
+        summary = load_summary(client, latest_date)
+        if summary is None or not (NEWSLETTER_ROOT / latest_date / "gate.json").exists():
+            print("Downloading its source data to score or check it here...")
+            download_sources(client, latest_date)
+        summary = summary or run_evaluation(latest_date)
         checks = load_checks(latest_date)
         editions, week_range = extract_editions(latest_date, checks)
         if week_range:

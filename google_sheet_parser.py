@@ -1,11 +1,9 @@
-import os
 import re
 from collections import Counter
 
-from google.oauth2.service_account import Credentials
-import google.auth
 import gspread
 
+import gcs
 from config import GOOGLE_CLOUD
 from team_names import canonical
 
@@ -23,7 +21,6 @@ class GoogleSheetParser:
             "https://www.googleapis.com/auth/spreadsheets",
             "https://www.googleapis.com/auth/drive"
         ]
-        self.SERVICE_ACCOUNT_FILE = "gen-lang-client.json"
         self.spreadsheet_url = spreadsheet_url
         self.worksheet_name = worksheet_name
         self._doc = None
@@ -32,11 +29,7 @@ class GoogleSheetParser:
     def doc(self):
         """Opened on first use, so importing this module doesn't need Google."""
         if self._doc is None:
-            if os.path.exists(self.SERVICE_ACCOUNT_FILE):
-                credentials = Credentials.from_service_account_file(self.SERVICE_ACCOUNT_FILE, scopes=self.SCOPES)
-            else:
-                credentials, _ = google.auth.default(scopes=self.SCOPES)
-            self._doc = gspread.authorize(credentials).open_by_url(self.spreadsheet_url)
+            self._doc = gspread.authorize(gcs.credentials(self.SCOPES)).open_by_url(self.spreadsheet_url)
         return self._doc
 
     @property

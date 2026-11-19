@@ -12,6 +12,8 @@ from typing import Dict, List, Optional
 
 import yaml
 
+from team_names import team_from_token
+
 PRICING_YML = Path(__file__).resolve().parent / "pricing.yml"
 
 
@@ -53,5 +55,5 @@ def edition_calls(newsletter_file: Path) -> List[dict]:
     usage_path = newsletter_file.parent / "usage.json"
     if not usage_path.exists():
         return []
-    team = newsletter_file.stem.replace("newsletter_", "").replace("_", " ")
+    team = team_from_token(newsletter_file.stem.removeprefix("newsletter_"))
     return json.loads(usage_path.read_text(encoding="utf-8")).get("teams", {}).get(team, [])

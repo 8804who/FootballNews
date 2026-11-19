@@ -46,7 +46,7 @@ ARSENAL = sources(
 
 class CheckEditionTest(unittest.TestCase):
     def check(self, text=EDITION, own=ARSENAL, others=None):
-        return gate.check_edition("Arsenal", RUN, text, {"Arsenal": own, **(others or {})})
+        return gate.check_edition("Arsenal", text, {"Arsenal": own, **(others or {})})
 
     def assertFlaggedFor(self, result, fragment):
         self.assertTrue(result["flagged"])
@@ -98,7 +98,7 @@ class NewChecksTest(unittest.TestCase):
     """Report-only warnings added with the 2026-11 news sections."""
 
     def check(self, text, own):
-        return gate.check_edition("Arsenal", RUN, text, {"Arsenal": own})
+        return gate.check_edition("Arsenal", text, {"Arsenal": own})
 
     def test_a_confirmed_item_cited_from_gossip_warns(self):
         from edition import NewsItem

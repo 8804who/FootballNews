@@ -9,15 +9,15 @@ import edition
 from config import TEAMS
 from summarizers import blocks
 from summarizers.llm import llmSummarizer
+from team_names import file_token
 
 
-def load_weekly_data(team_name: str, start: datetime, end: datetime, run_date: datetime):
+def load_weekly_data(team_name: str, start: datetime, end: datetime, run_date: datetime, fixtures):
     """This edition's matches, transfers and stories for one team — each
     match and story once, selected by kickoff/publish time (edition.py)."""
-    token = team_name.replace(" ", "_")
+    token = file_token(team_name)
 
     match_blocks = edition.load_matches(token, start, end, run_date)
-    fixtures = edition.load_fixtures(token, start, run_date)
     matches_data = edition.matches_markdown(team_name, match_blocks, start, end, fixtures)
     transfers_data = edition.transfers_markdown(team_name, edition.load_transfers(token, start, end, run_date))
     news_items = edition.edition_news(token, team_name, start, end, run_date, match_blocks)
@@ -25,12 +25,11 @@ def load_weekly_data(team_name: str, start: datetime, end: datetime, run_date: d
     return matches_data, transfers_data, news_items
 
 
-def load_data_blocks(team_name: str, start: datetime, end: datetime, run_date: datetime):
+def load_data_blocks(team_name: str, start: datetime, end: datetime, run_date: datetime, fixtures):
     """The code-rendered 순위 / 다음 경기 / 결장 blocks, why any was left out,
     and the injured players' names (the news call is told not to restate them)."""
-    token = team_name.replace(" ", "_")
+    token = file_token(team_name)
     overview = edition.load_overview(token, start, end, run_date)
-    fixtures = edition.load_fixtures(token, start, run_date)
     markdown, info = blocks.render(overview, fixtures, end, team_name)
     injured = [p["name"] for p in (overview or {}).get("injuries") or [] if p.get("name")]
     return markdown, info, injured
@@ -63,8 +62,9 @@ def generate_edition(team_name: str, run_date: datetime, summarizer=llmSummarize
     record. The LLM calls it made are left in summarizer.calls
     (evaluate/harness.py reuses this with other models and prompts)."""
     start, end = edition.edition_window(run_date)
-    matches_data, transfers_data, news_items = load_weekly_data(team_name, start, end, run_date)
-    data_blocks, block_info, injured = load_data_blocks(team_name, start, end, run_date)
+    fixtures = edition.load_fixtures(file_token(team_name), start, run_date)
+    matches_data, transfers_data, news_items = load_weekly_data(team_name, start, end, run_date, fixtures)
+    data_blocks, block_info, injured = load_data_blocks(team_name, start, end, run_date, fixtures)
     summarizer.calls = []
     body = summarizer.generate_newsletter(matches_data, transfers_data, news_items, data_blocks, injured)
     markdown = f"# {team_name} · 주간 뉴스레터 ({edition.date_range_label(start, end)})\n\n" + body
@@ -74,7 +74,7 @@ def generate_edition(team_name: str, run_date: datetime, summarizer=llmSummarize
 def write_edition(folder, team_name: str, markdown: str, inputs: dict) -> str:
     """newsletter_{team}.md, plus inputs/{team}.json beside it."""
     folder = Path(folder)
-    token = team_name.replace(" ", "_")
+    token = file_token(team_name)
     (folder / "inputs").mkdir(parents=True, exist_ok=True)
     path = folder / f"newsletter_{token}.md"
     path.write_text(markdown, encoding="utf-8")

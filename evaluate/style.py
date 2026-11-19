@@ -65,7 +65,7 @@ HELD_OUT = {
 _BANNED_RE = {k: re.compile(p, re.MULTILINE) for k, p in BANNED.items()}
 _HELD_RE = {k: re.compile(p, re.MULTILINE) for k, p in HELD_OUT.items()}
 _LINK_RE = re.compile(r"\]\(https?://[^)]*\)|\(https?://[^)]*\)")
-_HEADLINE_RE = re.compile(r"헤드라인[^\n]*\n+\s*\*\*(.+?)\*\*")
+_HEADLINE_RE = sections.HEADLINE_TITLE_RE
 _SENTENCE_RE = re.compile(r"[^.!?\n]*[가-힣][^.!?\n]*[.!?]")
 
 

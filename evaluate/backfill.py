@@ -69,13 +69,13 @@ def main() -> None:
     if not args.upload or not summaries:
         return
 
-    from generate_dashboard import (BUCKET_NAME, GCS_DATA_PREFIX, _gcs_client, append_if_new,
-                                    load_eval_history, save_eval_history)
-    client = _gcs_client()
-    bucket = client.bucket(BUCKET_NAME)
+    import gcs
+    from generate_dashboard import append_if_new, load_eval_history, save_eval_history
+    client = gcs.client()
+    bucket = client.bucket(gcs.BUCKET_NAME)
     history = load_eval_history(client)
     for date_str, summary in summaries.items():
-        bucket.blob(f"{GCS_DATA_PREFIX}/evaluation/{date_str}/summary.json").upload_from_string(
+        bucket.blob(f"{gcs.DATA_PREFIX}/evaluation/{date_str}/summary.json").upload_from_string(
             json.dumps(summary, indent=2), content_type="application/json")
         history, _ = append_if_new(history, date_str, summary)
     save_eval_history(client, history)

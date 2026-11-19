@@ -2,39 +2,9 @@ import argparse
 import os
 from datetime import datetime, timedelta, timezone
 
-from google.cloud import storage
-from google.oauth2 import service_account
+import gcs
 
-BUCKET_NAME = "my-football-news"
-GCS_PREFIX = "football-news/datas"
-SERVICE_ACCOUNT_FILE = "gen-lang-client.json"
 DATA_TYPES = ["fotmob", "news_rss", "newsletter"]
-
-
-def get_client():
-    credentials = service_account.Credentials.from_service_account_file(
-        SERVICE_ACCOUNT_FILE,
-        scopes=["https://www.googleapis.com/auth/cloud-platform"],
-    )
-    return storage.Client(credentials=credentials, project=credentials.project_id)
-
-
-def download_prefix(bucket, gcs_prefix: str, local_dir: str):
-    blobs = list(bucket.list_blobs(prefix=gcs_prefix))
-    if not blobs:
-        print(f"  No files found: gs://{bucket.name}/{gcs_prefix}")
-        return 0
-
-    count = 0
-    for blob in blobs:
-        relative = blob.name[len(gcs_prefix):].lstrip("/")
-        local_path = os.path.join(local_dir, relative)
-        os.makedirs(os.path.dirname(local_path), exist_ok=True)
-        blob.download_to_filename(local_path)
-        print(f"  Downloaded: {local_path}")
-        count += 1
-
-    return count
 
 
 def main():
@@ -76,17 +46,16 @@ def main():
             for i in range(0, args.days + 1)
         ]
 
-    client = get_client()
-    bucket = client.bucket(BUCKET_NAME)
+    bucket = gcs.client().bucket(gcs.BUCKET_NAME)
 
     total = 0
     for data_type in types:
         for date_str in dates:
-            gcs_prefix = f"{GCS_PREFIX}/{data_type}/{date_str}"
+            gcs_prefix = f"{gcs.DATA_PREFIX}/{data_type}/{date_str}"
             local_dir = f"datas/{data_type}/{date_str}"
             os.makedirs(local_dir, exist_ok=True)
             print(f"[{data_type}/{date_str}]")
-            total += download_prefix(bucket, gcs_prefix, local_dir)
+            total += gcs.download_prefix(bucket, gcs_prefix, local_dir)
 
     print(f"\nDone. {total} file(s) downloaded.")
 

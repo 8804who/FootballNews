@@ -31,7 +31,7 @@ def replay(case: dict):
             date = utils.parse_date(case["date"])
             clubs = [token] + [club.replace(" ", "_") for club in case.get("also", [])]
             sources = {club: gate.club_sources(club, date) for club in clubs}
-            verdict = gate.check_edition(token, date, newsletter.read_text(encoding="utf-8"), sources)
+            verdict = gate.check_edition(token, newsletter.read_text(encoding="utf-8"), sources)
             return evaluate_newsletter(newsletter), verdict
 
 

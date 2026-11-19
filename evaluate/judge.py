@@ -27,6 +27,7 @@ from typing import Dict, List, Literal, Mapping, Optional
 
 from pydantic import BaseModel, Field
 
+from newsletter_sections import MATCH_OF_WEEK, section_re
 from evaluate.news_grounding import extract_news_section, split_news_items
 from evaluate.utils import extract_links, strip_links
 
@@ -56,7 +57,7 @@ class Verdicts(BaseModel):
     verdicts: List[Verdict]
 
 
-_STORY_RE = re.compile(r"^##[^\n]*베스트\s*경기[^\n]*\n(.*?)(?=^## |\Z)", re.MULTILINE | re.DOTALL)
+_STORY_RE = section_re(MATCH_OF_WEEK)
 _ROW_RE = re.compile(r"^\|(.+\svs\s.+)\|\s*$", re.MULTILINE | re.IGNORECASE)
 
 

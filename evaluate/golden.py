@@ -28,6 +28,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import edition
 from evaluate.utils import BASE_DIR, DATA_ROOT, NEWSLETTER_ROOT, parse_date
+from team_names import file_token
 
 GOLDEN_DIR = BASE_DIR / "tests" / "golden"
 
@@ -48,10 +49,10 @@ def source_files(token: str, date_str: str) -> dict:
 
 
 def capture(name: str, date_str: str, team: str, why: str, also=()) -> Path:
-    token = team.replace(" ", "_")
+    token = file_token(team)
     newsletter = f"newsletter/{date_str}/newsletter_{token}.md"
     files = {newsletter: (NEWSLETTER_ROOT / date_str / f"newsletter_{token}.md").read_text(encoding="utf-8")}
-    for club in (token, *[a.replace(" ", "_") for a in also]):
+    for club in (token, *[file_token(a) for a in also]):
         files.update(source_files(club, date_str))
     case = {"name": name, "date": date_str, "team": team, "also": list(also), "why": why, "expect": {}, "files": files}
     GOLDEN_DIR.mkdir(parents=True, exist_ok=True)

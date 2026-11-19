@@ -10,23 +10,16 @@ import edition
 from config import NEWSLETTER, SMTP, TEAMS
 from email_sender.smtp_sender import smtp_sender
 from google_sheet_parser import google_sheet_parser
+from team_names import file_token
 
 
-def get_newsletter(today, team_name: str) -> str | None:
-
-    team_name_normalized = team_name.replace(" ", "_")
-
-    newsletter_data = ""
-    newsletter_path = f"datas/newsletter/{today}/newsletter_{team_name_normalized}.md"
-
-    if not os.path.exists(newsletter_path):
+def get_newsletter(today, team_name: str) -> str:
+    """The club's newsletter for the week, or "" if none was generated."""
+    path = f"datas/newsletter/{today}/newsletter_{file_token(team_name)}.md"
+    if not os.path.exists(path):
         return ""
-
-    if os.path.exists(newsletter_path):
-        with open(newsletter_path, "r") as f:
-            newsletter_data += f.read() + "\n"
-
-    return newsletter_data
+    with open(path, "r") as f:
+        return f.read() + "\n"
 
 
 def mask(email: str) -> str:

@@ -59,40 +59,35 @@ def _is_recent(published):
 
 
 class NewsRSS:
-    def __init__(self):
-        pass
-
     def get_transfer_news_rss(self, team_name):
-            """
-            구글 뉴스 RSS를 활용해 공신력 있는 소스의 이적 루머만 추출합니다.
-            """
-            # 검색어: 팀명 + transfer + (공신력 있는 언론사 필터)
-            query = f'"{team_name}" transfer (site:skysports.com OR site:bbc.co.uk OR site:theathletic.com)'
-            encoded_query = requests.utils.quote(query)
-            rss_url = f"https://news.google.com/rss/search?q={encoded_query}&hl=en-GB&gl=GB&ceid=GB:en"
+        """Up to 5 recent Google News headlines about the club's transfers
+        from Sky Sports, BBC and The Athletic."""
+        # 검색어: 팀명 + transfer + (공신력 있는 언론사 필터)
+        query = f'"{team_name}" transfer (site:skysports.com OR site:bbc.co.uk OR site:theathletic.com)'
+        encoded_query = requests.utils.quote(query)
+        rss_url = f"https://news.google.com/rss/search?q={encoded_query}&hl=en-GB&gl=GB&ceid=GB:en"
 
-            feed = feedparser.parse(rss_url)
+        feed = feedparser.parse(rss_url)
 
-            team_aliases = aliases(team_name)
-            news_items = []
-            for entry in feed.entries:
-                if not _mentions_team(entry.title, team_aliases):
-                    continue  # headline doesn't actually mention this team
-                if is_index_page(entry.title, team_aliases):
-                    continue  # club landing page, not a story
-                published = _published_at(entry)
-                if not _is_recent(published):
-                    continue  # stale story
-                news_items.append({
-                    "title": entry.title,
-                    "link": entry.link,
-                    "published": entry.published,
-                    "published_at": published,
-                })
-                if len(news_items) == 5:  # 상위 5개만 추출
-                    break
+        team_aliases = aliases(team_name)
+        news_items = []
+        for entry in feed.entries:
+            if not _mentions_team(entry.title, team_aliases):
+                continue  # headline doesn't actually mention this team
+            if is_index_page(entry.title, team_aliases):
+                continue  # club landing page, not a story
+            published = _published_at(entry)
+            if not _is_recent(published):
+                continue  # stale story
+            news_items.append({
+                "title": entry.title,
+                "link": entry.link,
+                "published_at": published,
+            })
+            if len(news_items) == 5:  # 상위 5개만 추출
+                break
 
-            return news_items
+        return news_items
 
     def get_bbc_team_news(self, team_name, slug):
         """Up to BBC_PER_RUN recent stories from BBC Sport's club feed, each

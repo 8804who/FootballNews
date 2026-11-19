@@ -53,7 +53,7 @@ class LLMSummarizer:
         self.tidied = {}
 
 
-    def generate_prompt(self, prompt_name: str, data: str = None) -> str:
+    def generate_prompt(self, prompt_name: str) -> str:
         """One '### Key' part per prompt.yml entry. An entry is a block of
         text or a list of lines. (A text entry used to be looped over like a
         list, so until Nov 2026 the system rules reached the model one
@@ -70,16 +70,11 @@ class LLMSummarizer:
         return prompt
 
 
-    def generate_example(self, example_name: str) -> dict:
-        example = self.examples[example_name]
-        return example
-
-
     def generate_messages(self, prompt_name: str, data: str) -> list:
         """System rules, each few-shot example as a past user/assistant turn,
         then the real input as the final user turn."""
         messages = [SystemMessage(self.generate_prompt("system_prompt") + self.generate_prompt(prompt_name))]
-        for example in self.generate_example(prompt_name):
+        for example in self.examples[prompt_name]:
             messages.append(HumanMessage(_EXAMPLE_INTRO + example["input"]))
             messages.append(AIMessage(example["output"]))
         messages.append(HumanMessage(_INPUT_INTRO + data))

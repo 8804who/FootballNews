@@ -31,6 +31,7 @@ failed  : list[str]    — e.g. "64' Bukayo Saka — no event for him at that mi
 import re
 from typing import Dict, List, Optional, Sequence, Set, Tuple
 
+from newsletter_sections import HEADLINE, NEWS_HEADING_RE, section_re
 from team_names import canonical, fold
 
 # "- `64'` **Arsenal**:  - ⚽ Goal: Jurriën Timber (1 - 0) (assist by Declan Rice)"
@@ -42,7 +43,6 @@ _EVENT_RE = re.compile(
 _SCORER_RE = re.compile(r"^(.+?)\s*\(\d+\s*-\s*\d+\)")
 _ASSIST_RE = re.compile(r"assist by ([^)]+)\)")
 _TEAMS_RE = re.compile(r"^\| Stat \| (.+?) \| (.+?) \|$|^## .*?Match: (?:vs|@) (.+)$", re.MULTILINE)
-_NEWS_HEADING_RE = re.compile(r"^##\s.*(이적|뉴스)", re.MULTILINE)
 
 # A match minute, optionally after 전반/후반; not part of a range ("64~71분")
 # and not a duration ("7분 사이에", "3분 뒤").
@@ -53,7 +53,7 @@ _MINUTE_RE = re.compile(
 _SOFT_RE = re.compile(r"\s*만에")
 # "7분·29분 연속 실점": the goals were conceded, not scored by a named player.
 _CONCEDED_RE = re.compile(r"(?:\s*[·,]\s*\d{1,3}\s*(?:분|'))*\s*(?:에|째)?\s*(?:\S{1,3}\s+)?(?:연속\s*)?(?:실점|헌납)")
-_HEADLINE_RE = re.compile(r"^##[^\n]*헤드라인[^\n]*\n.*?(?=^## |\Z)", re.MULTILINE | re.DOTALL)
+_HEADLINE_RE = section_re(HEADLINE)
 # Clause boundaries: a comma that isn't inside a list of minutes ("46', 90'"),
 # or a connective ending ("넣었고 ", "앞섰지만 ", "몰아치며 ").
 _CLAUSE_SPLIT_RE = re.compile(
@@ -110,7 +110,7 @@ def _team_tokens(blocks: Sequence[str]) -> Set[str]:
 
 def _match_part(text: str) -> str:
     """Match story and scoreboard: before the news section, headline removed."""
-    m = _NEWS_HEADING_RE.search(text)
+    m = NEWS_HEADING_RE.search(text)
     return _HEADLINE_RE.sub("", text[: m.start()] if m else text)
 
 

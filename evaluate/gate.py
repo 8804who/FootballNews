@@ -61,6 +61,7 @@ from evaluate.utils import (
     resolve_newsletter_token,
     strip_links,
 )
+from team_names import team_from_token
 
 EXAMPLE_YML = BASE_DIR / "example.yml"
 
@@ -102,7 +103,7 @@ def club_sources(token: str, date: datetime, inputs: Dict = None) -> Dict:
         "end": end,
         "blocks": blocks,
         "matches": matches,
-        "text": edition.matches_markdown(token.replace("_", " "), blocks, start, end) + "\n" + news_text,
+        "text": edition.matches_markdown(team_from_token(token), blocks, start, end) + "\n" + news_text,
         "words": _words(names) | news_grounding.build_source_words(news_text, players),
         "links": {item.link for item in items},
         "items": {item.link: item for item in items},
@@ -179,8 +180,7 @@ def _had_lead_change(block: str) -> bool:
 # A comeback stated as fact ("역전승", "재역전", "경기를 뒤집었습니다"), not a
 # metaphor or an attempt ("뒤집으려", "뒤집어야", "흐름이 뒤집히던").
 _COMEBACK_RE = re.compile(r"역전|뒤집(?:었|고|은)")
-_MATCH_SECTION_RE = re.compile(r"^##[^\n]*(?:헤드라인|베스트\s*경기|스코어보드)[^\n]*\n(.*?)(?=^## |\Z)",
-                               re.MULTILINE | re.DOTALL)
+_MATCH_SECTION_RE = sections.section_re(sections.HEADLINE, sections.MATCH_OF_WEEK, sections.SCOREBOARD)
 
 
 def _comeback_without_lead_change(plain: str, blocks: List[str]) -> bool:
@@ -191,7 +191,7 @@ def _comeback_without_lead_change(plain: str, blocks: List[str]) -> bool:
             and not any(map(_had_lead_change, blocks)))
 
 
-def check_edition(token: str, date: datetime, text: str, all_sources: Dict[str, Dict]) -> Dict:
+def check_edition(token: str, text: str, all_sources: Dict[str, Dict]) -> Dict:
     src = all_sources[token]
     text = sections.strip_data_blocks(text)
     plain = strip_links(text)
@@ -220,7 +220,7 @@ def check_edition(token: str, date: datetime, text: str, all_sources: Dict[str, 
     names = hallucination.extract_names(plain)
     untraceable = {n for n in names if not _words([n]) & src["words"]}
     for name in sorted(untraceable):
-        owners = [t.replace("_", " ") for t, other in all_sources.items()
+        owners = [team_from_token(t) for t, other in all_sources.items()
                   if t != token and _words([name]) <= other["words"]]
         if owners:
             problems.append(f"{name} isn't in this club's sources this week, only in {', '.join(owners)}'s "
@@ -261,7 +261,7 @@ def run_gate(date_str: str) -> Dict:
 
     teams = {}
     for f, token in zip(files, tokens):
-        teams[token.replace("_", " ")] = check_edition(token, date, f.read_text(encoding="utf-8"), all_sources)
+        teams[team_from_token(token)] = check_edition(token, f.read_text(encoding="utf-8"), all_sources)
     return {"date": date_str, "checked_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"), "teams": teams}
 
 

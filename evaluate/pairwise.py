@@ -33,6 +33,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import newsletter_sections as sections
 from evaluate import judge
 from evaluate.utils import strip_links
+from team_names import team_from_token
 
 RUNS = Path(__file__).resolve().parent / "runs"
 
@@ -91,7 +92,7 @@ def compare(run_x: str, run_y: str, model: str, use_llm: bool = True, seed: int 
         a, b = (x, y) if x_is_a else (y, x)
         key[f"{date}_{team}"] = {"A": run_x if x_is_a else run_y, "B": run_y if x_is_a else run_x}
         (blind / f"{date}_{team}.md").write_text(
-            f"# {date} · {team.replace('_', ' ')}\n\n어느 쪽이 더 사람이 쓴 것처럼 자연스럽고, 친구에게 보내고 싶나요?\n\n"
+            f"# {date} · {team_from_token(team)}\n\n어느 쪽이 더 사람이 쓴 것처럼 자연스럽고, 친구에게 보내고 싶나요?\n\n"
             f"---\n\n## A\n\n{a}\n\n---\n\n## B\n\n{b}\n", encoding="utf-8")
     (blind / "key.json").write_text(json.dumps(key, indent=1), encoding="utf-8")
 

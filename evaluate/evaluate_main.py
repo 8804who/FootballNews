@@ -74,6 +74,7 @@ from evaluate.utils import (
     source_available,
     strip_links,
 )
+from team_names import team_from_token
 
 # Bump when a metric's definition or weight changes: stored summaries and the
 # dashboard trend only compare scores from the same version.
@@ -151,7 +152,7 @@ def evaluate_newsletter(newsletter_file: Path, use_judge: bool = False,
     m6 = news_grounding.evaluate(raw, news_words, headline_words)
     m7 = match_facts.evaluate(text, blocks)
     m8 = judge.evaluate(
-        raw, edition.matches_markdown(token.replace("_", " "), blocks, start, end,
+        raw, edition.matches_markdown(team_from_token(token), blocks, start, end,
                                       edition.load_fixtures(token, start, nl_date, root=utils.DATA_ROOT)),
         {item.link: item.source_text for item in news_items}, model=judge_model,
     ) if use_judge else _NO_JUDGE
@@ -184,7 +185,7 @@ def evaluate_newsletter(newsletter_file: Path, use_judge: bool = False,
 
     return {
         "date":    date_str,
-        "team":    token.replace("_", " "),
+        "team":    team_from_token(token),
         # raw metric results
         "score_accuracy":       m1,
         "section_completeness": m2,

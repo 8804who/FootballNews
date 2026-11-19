@@ -68,3 +68,13 @@ def canonical(name: str) -> Optional[str]:
 def aliases(team: str) -> List[str]:
     """Every known spelling of `team`, including its own name."""
     return list(_spellings().get(team, [team]))
+
+
+def file_token(team: str) -> str:
+    """The club's name as it appears in file names ("Man United" → "Man_United")."""
+    return team.replace(" ", "_")
+
+
+def team_from_token(tok: str) -> str:
+    """The club name a file-name token stands for (the inverse of `file_token`)."""
+    return tok.replace("_", " ")
