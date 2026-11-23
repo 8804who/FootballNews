@@ -18,7 +18,7 @@ def get_newsletter(today, team_name: str) -> str:
     path = f"datas/newsletter/{today}/newsletter_{file_token(team_name)}.md"
     if not os.path.exists(path):
         return ""
-    with open(path, "r") as f:
+    with open(path, "r", encoding="utf-8") as f:
         return f.read() + "\n"
 
 

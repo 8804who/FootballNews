@@ -22,7 +22,7 @@ _SCOREBOARD_RE = section_re(SCOREBOARD)
 GCS_HISTORY_BLOB = "football-news/dashboard/eval-history.json"
 REPO = "8804who/FootballNews"
 WORKFLOW_SCHEDULES = {
-    "collect_news": "daily 09:00 KST",
+    "collect_news": "daily 09:30 KST",
     "generate_newsletter": "Mon, after collect_news",
     "send_mail": "Mon, after generate_newsletter",
 }

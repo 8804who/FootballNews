@@ -13,6 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from evaluate import gate, utils
 from evaluate.evaluate_main import evaluate_newsletter
+from team_names import file_token
 
 GOLDEN_DIR = Path(__file__).resolve().parent / "golden"
 
@@ -26,10 +27,10 @@ def replay(case: dict):
             (root / rel).parent.mkdir(parents=True, exist_ok=True)
             (root / rel).write_text(text, encoding="utf-8")
         with patch.object(utils, "DATA_ROOT", root), patch.object(utils, "NEWSLETTER_ROOT", root / "newsletter"):
-            token = case["team"].replace(" ", "_")
+            token = file_token(case["team"])
             newsletter = root / "newsletter" / case["date"] / f"newsletter_{token}.md"
             date = utils.parse_date(case["date"])
-            clubs = [token] + [club.replace(" ", "_") for club in case.get("also", [])]
+            clubs = [token] + [file_token(club) for club in case.get("also", [])]
             sources = {club: gate.club_sources(club, date) for club in clubs}
             verdict = gate.check_edition(token, newsletter.read_text(encoding="utf-8"), sources)
             return evaluate_newsletter(newsletter), verdict

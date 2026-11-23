@@ -24,7 +24,9 @@ def credentials(scopes):
 
 def client() -> storage.Client:
     creds = credentials(["https://www.googleapis.com/auth/cloud-platform"])
-    return storage.Client(credentials=creds, project=creds.project_id)
+    # User logins and compute-engine identities carry no project_id; with
+    # None the client finds the project from the environment itself.
+    return storage.Client(credentials=creds, project=getattr(creds, "project_id", None))
 
 
 def download_prefix(bucket, gcs_prefix: str, local_dir: str, verbose: bool = True) -> int:
@@ -32,10 +34,15 @@ def download_prefix(bucket, gcs_prefix: str, local_dir: str, verbose: bool = Tru
     blobs = list(bucket.list_blobs(prefix=gcs_prefix))
     if not blobs and verbose:
         print(f"  No files found: gs://{bucket.name}/{gcs_prefix}")
+    count = 0
     for blob in blobs:
-        local_path = os.path.join(local_dir, blob.name[len(gcs_prefix):].lstrip("/"))
+        rel = blob.name[len(gcs_prefix):].lstrip("/")
+        if not rel or rel.endswith("/"):  # folder placeholder, not a file
+            continue
+        local_path = os.path.join(local_dir, rel)
         os.makedirs(os.path.dirname(local_path), exist_ok=True)
         blob.download_to_filename(local_path)
+        count += 1
         if verbose:
             print(f"  Downloaded: {local_path}")
-    return len(blobs)
+    return count
