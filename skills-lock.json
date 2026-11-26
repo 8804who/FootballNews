@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "skills": {
+    "ego-browser": {
+      "source": "citrolabs/ego-lite",
+      "commit": "56589ea8b98fd3b17a5d2316bfd8ff7b803d3293",
+      "sourceType": "github",
+      "skillPath": "skills/ego-browser/SKILL.md",
+      "computedHash": "1ec529626bfbbcdb4933063c180f230d49b37bd8080dc7757f12472ec3f285f7"
+    }
+  }
+}
