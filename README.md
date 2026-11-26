@@ -150,6 +150,7 @@ python evaluate/gate.py --date 20261026
 
 # 뉴스레터 발송
 python send_mail.py --dry-run               # 발송 대상만 출력
+python send_mail.py --test Arsenal          # Arsenal 이번 호를 ALERT_EMAIL에게만 발송
 python send_mail.py
 
 # 대시보드 생성
@@ -168,6 +169,7 @@ python -m unittest discover -s tests
 | `send_mail.yaml` | `generate_newsletter`가 시작 (또는 수동) | 모든 구단 발송 (이미 받은 구독자는 제외) |
 | `dashboard.yaml` | 위 워크플로우 완료 후 | 상태 대시보드 재생성 및 배포 (주마다 저장된 summary.json, gate.json 사용) |
 | `tests.yaml` | 모든 push, pull request | 단위 테스트 + 골든 회귀 사례 (시크릿 불필요) |
+| `smoke_test.yaml` | `main` push의 테스트 통과 후 | Arsenal 한 팀으로 수집부터 발송까지 실행, 운영자(`ALERT_EMAIL`)에게만 발송. GCS 업로드 없음 |
 
 세 워크플로우를 각자의 스케줄 대신 하나로 연결해 주말 경기가 수집되기 전에 뉴스레터가 생성되는 일이 없도록 했습니다. GitHub의 스케줄 실행은 몇 시간씩 늦게 시작되므로(2026년 10~11월 기준 5~7시간) 전체 흐름도 그만큼 늦게 시작됩니다.
 

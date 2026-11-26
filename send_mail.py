@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from urllib.parse import quote
 
 import edition
-from config import NEWSLETTER, SMTP, TEAMS
+from config import ALERT_EMAIL, NEWSLETTER, SMTP, TEAMS
 from email_sender.smtp_sender import smtp_sender
 from google_sheet_parser import google_sheet_parser
 from team_names import file_token
@@ -151,17 +151,46 @@ def send_newsletters(run_date, dry_run=False, sheet=google_sheet_parser, sender=
     return failures
 
 
+def send_test(run_date, team_name: str, note: str = "", sender=smtp_sender):
+    """Email one club's edition to the operator (ALERT_EMAIL) only: the
+    post-merge smoke test. Never reads the subscriber sheet or sent.json, so
+    it can't reach a subscriber or mark anyone as sent. Returns problems."""
+    today_str = run_date.strftime('%Y%m%d')
+    newsletter = get_newsletter(today_str, team_name)
+    if not newsletter:
+        return [f"[{team_name}] no newsletter file in datas/newsletter/{today_str}"]
+    start, end = edition.edition_window(run_date)
+    subject = f"[FootballNews 테스트] {team_name} 주간 뉴스레터 ({edition.date_range_label(start, end)})"
+    body = f"> {note}\n\n{newsletter}" if note else newsletter
+    try:
+        sender.send_email(
+            ALERT_EMAIL, subject, body,
+            footer=footer_for(team_name, ALERT_EMAIL, today_str),
+            headers={"List-Unsubscribe": list_unsubscribe_header(ALERT_EMAIL)},
+        )
+    except Exception as e:
+        return [f"[{team_name}] test send to {mask(ALERT_EMAIL)}: {e}"]
+    print(f"[{team_name}] Test edition sent to {mask(ALERT_EMAIL)}: {subject}")
+    return []
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Email this week's newsletters to each team's subscribers")
     parser.add_argument("--date", help="Send the newsletters generated on this day (YYYYMMDD); defaults to today (UTC)")
     parser.add_argument("--dry-run", action="store_true", help="Print what would be sent, without sending anything")
+    parser.add_argument("--test", metavar="TEAM",
+                        help="Send only this club's edition, only to ALERT_EMAIL (subscribers are never read)")
+    parser.add_argument("--note", default="", help="With --test: a line shown above the newsletter")
     args = parser.parse_args()
 
     run_date = (
         datetime.strptime(args.date, "%Y%m%d").replace(tzinfo=timezone.utc)
         if args.date else datetime.now(timezone.utc)
     )
-    failures = send_newsletters(run_date, dry_run=args.dry_run)
+    if args.test:
+        failures = send_test(run_date, args.test, args.note)
+    else:
+        failures = send_newsletters(run_date, dry_run=args.dry_run)
 
     if failures:
         print(f"\n{len(failures)} problem(s):")

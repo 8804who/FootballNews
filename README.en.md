@@ -149,6 +149,7 @@ python evaluate/gate.py --date 20261026
 
 # Send newsletter
 python send_mail.py --dry-run               # print what would be sent
+python send_mail.py --test Arsenal          # this edition's Arsenal newsletter to ALERT_EMAIL only
 python send_mail.py
 
 # Generate dashboard
@@ -167,6 +168,7 @@ python -m unittest discover -s tests
 | `send_mail.yaml` | Started by `generate_newsletter` (or by hand) | Send every club's edition, skipping anyone already sent it |
 | `dashboard.yaml` | After any of the workflows above finish | Rebuild + deploy the status dashboard (each week's stored summary.json and gate.json) |
 | `tests.yaml` | Every push and pull request | Unit tests + the golden regression cases (no secrets needed) |
+| `smoke_test.yaml` | After `tests` passes on a push to `main` | Collect through send for Arsenal only, emailed to the operator (`ALERT_EMAIL`) only; uploads nothing to GCS |
 
 The three are chained instead of scheduled separately so a newsletter is never generated before the weekend's matches are collected. GitHub starts scheduled runs hours late (5 to 7 hours in Oct–Nov 2026), so the whole chain starts late too.
 

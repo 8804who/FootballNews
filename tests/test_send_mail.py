@@ -126,6 +126,27 @@ class SendNewslettersTest(unittest.TestCase):
         self.assertTrue(any("no newsletter file" in p for p in problems))
 
 
+class SendTestTest(unittest.TestCase):
+    """The post-merge smoke test's send: the operator only, nothing recorded."""
+    setUp = SendNewslettersTest.setUp
+    tearDown = SendNewslettersTest.tearDown
+
+    def test_only_the_operator_gets_it_and_nothing_is_recorded(self):
+        sender = FakeSender()
+        problems = send_mail.send_test(RUN, "Arsenal", note="commit abc1234", sender=sender)
+        self.assertEqual(problems, [])
+        self.assertEqual([s["to"] for s in sender.sent], [send_mail.ALERT_EMAIL])
+        self.assertTrue(sender.sent[0]["subject"].startswith("[FootballNews 테스트] Arsenal"))
+        self.assertFalse((self.folder / "sent.json").exists())
+
+    def test_a_missing_edition_or_failed_send_is_a_problem(self):
+        self.assertTrue(send_mail.send_test(RUN, "Liverpool", sender=FakeSender()))
+        failing = FakeSender(fail_for={send_mail.ALERT_EMAIL})
+        problems = send_mail.send_test(RUN, "Arsenal", sender=failing)
+        self.assertEqual(len(problems), 1)
+        self.assertNotIn(send_mail.ALERT_EMAIL, problems[0])  # masked
+
+
 class MaskTest(unittest.TestCase):
     def test_logs_only_show_a_masked_address(self):
         self.assertEqual(send_mail.mask("jane.doe@example.com"), "j***@example.com")

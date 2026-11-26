@@ -1,0 +1,127 @@
+name: smoke_test
+
+# After every push to main that passes the unit tests: run the whole pipeline
+# (collect -> generate -> evaluate -> checks -> send) for one club and email
+# the edition to the operator (ALERT_EMAIL) only. Nothing is uploaded to GCS
+# and the subscriber sheet is never read, so production data and subscribers
+# are untouched. Costs one club's generation (a few cents of OpenAI).
+on:
+  workflow_run:
+    workflows: ["tests"]
+    types:
+      - completed
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# A newer merge supersedes an older one still running.
+concurrency:
+  group: smoke_test
+  cancel-in-progress: true
+
+jobs:
+  smoke_test:
+    # Only a push to main whose unit tests passed (not a pull request's run).
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      SMOKE_TEAM: Arsenal
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      GOOGLE_CLOUD_EMAIL: ${{ secrets.GOOGLE_CLOUD_EMAIL }}
+      GOOGLE_CLOUD_SPREADSHEET_URL: ${{ secrets.GOOGLE_CLOUD_SPREADSHEET_URL }}
+      SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+      SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+      ALERT_EMAIL: ${{ secrets.ALERT_EMAIL }}
+      COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
+    steps:
+      - name: Checkout the tested commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.COMMIT }}
+
+      - name: Authenticate with GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.12
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Install Playwright browsers
+        run: |
+          playwright install chromium --with-deps
+
+      # Read-only: the edition's earlier days come from GCS, as in
+      # generate_newsletter. Today's folder is then re-collected below, so the
+      # fresh scrape overwrites today's files.
+      - name: Download this edition's football data from GCS
+        run: |
+          mkdir -p datas/fotmob datas/news_rss
+          DATES=$(python -c "
+          from datetime import datetime, timezone
+          import edition
+          now = datetime.now(timezone.utc)
+          print(' '.join(edition.folder_dates(edition.edition_window(now)[0], now)))")
+          for DATE in $DATES; do
+            gcloud storage cp -r gs://my-football-news/football-news/datas/fotmob/${DATE} datas/fotmob/ || true
+            gcloud storage cp -r gs://my-football-news/football-news/datas/news_rss/${DATE} datas/news_rss/ || true
+          done
+
+      - name: Collect (one club)
+        run: |
+          python collect_news.py --team "$SMOKE_TEAM"
+          DATE=$(date -u +%Y%m%d)
+          TOKEN=${SMOKE_TEAM// /_}
+          for f in datas/fotmob/${DATE}/team_daily_report_${TOKEN}_matches.md \
+                   datas/fotmob/${DATE}/team_daily_report_${TOKEN}_fixtures.json \
+                   datas/news_rss/${DATE}/team_daily_report_${TOKEN}.md; do
+            test -f "$f" || { echo "collect wrote no $f"; exit 1; }
+          done
+
+      - name: Generate (one club)
+        run: |
+          python generate_newsletter.py --team "$SMOKE_TEAM"
+          f=datas/newsletter/$(date -u +%Y%m%d)/newsletter_${SMOKE_TEAM// /_}.md
+          test -s "$f" || { echo "generate wrote no $f"; exit 1; }
+
+      # No --judge: the deterministic metrics are free. Both steps exit 0 for
+      # a low score or a flagged edition and fail only if the code crashes.
+      - name: Evaluate
+        run: |
+          python evaluate/evaluate_main.py --date $(date -u +%Y%m%d) --team "$SMOKE_TEAM"
+
+      - name: Check the edition
+        run: |
+          python evaluate/gate.py --date $(date -u +%Y%m%d)
+
+      - name: Send to the operator only
+        run: |
+          python send_mail.py --test "$SMOKE_TEAM" \
+            --note "Smoke test · commit ${COMMIT::7} · ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+      - name: Keep the generated edition
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-test-edition
+          path: datas/newsletter/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Alert on failure
+        if: failure()
+        run: |
+          python notify.py --subject "smoke_test failed on ${COMMIT::7}" --body "The pipeline broke after this merge to main. Subscribers were not affected. ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
